@@ -350,11 +350,17 @@ function fmtDate(s) {
 }
 
 // ── Resolver label cuando no hay nombre directo ───────────
-function resolveLabel(g, side) {
+// Primero confiamos en lo que diga la API (home_team_id/name_en). Solo si
+// la API todavía no resolvió ese cruce, intentamos calcularlo nosotros:
+// si el partido que alimenta este cupo ya terminó, sacamos el ganador (o
+// perdedor, para el partido por el 3er puesto) directamente del marcador.
+function resolveLabel(g, side, byId, visited) {
+  visited = visited || new Set();
   const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
   const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
   const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
 
+  // Si hay nombre real y el id no es 0, úsalo (la API ya lo resolvió)
   if (id && id !== '0' && nm) return nm;
 
   if (!lbl) return '–';
@@ -366,10 +372,28 @@ function resolveLabel(g, side) {
   m = lbl.match(/^3rd Group ([A-L/]+)$/);
   if (m) return `Mejor 3.° (${m[1]})`;
   m = lbl.match(/^Winner Match (\d+)$/);
-  if (m) return `Gan. #${m[1]}`;
+  if (m) return resolveAdvancingTeam(m[1], true, byId, visited) || `Gan. #${m[1]}`;
   m = lbl.match(/^Loser Match (\d+)$/);
-  if (m) return `Per. #${m[1]}`;
+  if (m) return resolveAdvancingTeam(m[1], false, byId, visited) || `Per. #${m[1]}`;
   return lbl;
+}
+
+// Calcula, a partir del marcador, qué equipo avanza (ganador) o queda
+// eliminado (perdedor) de un partido ya finalizado. Si ese partido a su vez
+// dependía de otro cruce sin resolver, sigue la cadena hacia atrás.
+function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
+  if (!byId || visited.has(matchId)) return null;
+  visited.add(matchId);
+
+  const g = byId[String(matchId)];
+  if (!g || g.finished !== 'TRUE') return null;
+
+  const hs = parseFloat(g.home_score);
+  const as = parseFloat(g.away_score);
+  if (isNaN(hs) || isNaN(as) || hs === as) return null; // empate sin definir (posibles penales) → no arriesgamos un dato incorrecto
+
+  const homeAdvances = wantWinner ? hs > as : hs < as;
+  return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
 }
 
 function isPending(name) {
@@ -397,11 +421,11 @@ function tRow(name, score, done) {
 }
 
 // ── HTML de una match card ────────────────────────────────
-function mkCard(g) {
+function mkCard(g, byId) {
   if (!g) return '';
   const done = g.finished === 'TRUE';
-  const h = resolveLabel(g,'h');
-  const a = resolveLabel(g,'a');
+  const h = resolveLabel(g,'h', byId);
+  const a = resolveLabel(g,'a', byId);
   const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
   return `<div class="card ${done?'done':''}">
     <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
@@ -434,10 +458,10 @@ function buildSpotlight(byId) {
     <div class="spotlight">
       <div class="trophy">🏆</div>
       <div class="stitle">Gran Final</div>
-      ${final ? mkCard(final) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      ${final ? mkCard(final, byId) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
       <div class="third-mini">
         <div class="stitle">Tercer Puesto</div>
-        ${third ? mkCard(third) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+        ${third ? mkCard(third, byId) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
       </div>
     </div>`;
 }
@@ -446,7 +470,7 @@ function buildRoundsHtml(byId) {
   return ROUNDS.map(r => {
     const done = countDone(r.ids, byId);
     const total = r.ids.length;
-    const cardsHtml = r.ids.map(id => mkCard(byId[String(id)])).join('');
+    const cardsHtml = r.ids.map(id => mkCard(byId[String(id)], byId)).join('');
     return `
       <div class="round ${r.open ? 'open':''}" data-key="${r.key}">
         <div class="round-header" onclick="toggleRound(this)">
