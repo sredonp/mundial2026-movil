@@ -45,6 +45,25 @@ https://sredonp.github.io/mundial2026/
 Quien no quiera instalarla puede simplemente abrir el link en el navegador,
 sin perder ninguna función.
 
+## Cómo se instala ahora
+
+La app ya no requiere que busques instrucciones por tu cuenta: te las muestra
+ella misma, apenas la abres.
+
+**iPhone (Safari):** a los 1-2 segundos de abrir el sitio aparece un cartel
+abajo indicando "toca Compartir → Agregar a pantalla de inicio". Apple no
+permite que ningún sitio web se instale solo en iOS (ni Spotify, ni Twitter,
+ni nadie puede saltarse ese paso) — es una restricción del sistema, no de esta
+app. Lo más cercano a "automático" es justamente esto: que el cartel aparezca
+solo y te diga exactamente qué tocar, sin que tengas que acordarte tú.
+
+**Android (Chrome):** aparece un cartel con un botón **"Instalar"**. Al
+tocarlo, Chrome muestra su diálogo nativo de instalación directamente — un
+solo toque, sin tener que buscar el menú de los tres puntos.
+
+En ambos casos el cartel tiene una "✕" para cerrarlo, y una vez cerrado no
+vuelve a aparecer (se recuerda en el propio teléfono).
+
 ## Notas técnicas
 
 - El `sw.js` (service worker) cachea los archivos estáticos para que la app
