@@ -134,7 +134,7 @@ h1 {
   transition:max-height .3s ease;
   padding:0 10px;
 }
-.round.open .round-body { padding:0 10px 10px; }
+.round.open .round-body { max-height:none; padding:0 10px 10px; }
 
 /* ── Cards de partido ── */
 .card {
@@ -215,6 +215,60 @@ h1 {
 
 /* Indicador de carga inicial centrado */
 #bracket { min-height: 100px; }
+
+/* ── Banner de instalación (aparece solo, sin que el usuario lo pida) ── */
+.install-banner {
+  position:fixed;
+  left:12px; right:12px;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  background:linear-gradient(135deg,#2e2413,#1a1a24);
+  border:1px solid #e5a93b;
+  border-radius:12px;
+  padding:12px 12px 12px 14px;
+  display:none;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,.45);
+  z-index:50;
+  animation:installSlideUp .35s ease;
+}
+@keyframes installSlideUp { from{transform:translateY(24px); opacity:0} to{transform:translateY(0); opacity:1} }
+.install-text {
+  flex:1;
+  font-size:.78rem;
+  line-height:1.45;
+  color:#f1f1f4;
+}
+.install-text strong { color:#e5a93b; }
+.share-ico {
+  width:15px; height:15px;
+  vertical-align:-3px;
+  margin:0 1px;
+  fill:#e5a93b;
+}
+.install-btn {
+  background:#e5a93b;
+  color:#1a1a24;
+  font-weight:700;
+  font-size:.78rem;
+  border:none;
+  border-radius:8px;
+  padding:8px 14px;
+  flex-shrink:0;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.install-close {
+  background:transparent;
+  border:none;
+  color:#8a8a9e;
+  font-size:1.05rem;
+  padding:2px 4px;
+  cursor:pointer;
+  flex-shrink:0;
+  line-height:1;
+}
+
 </style>
 </head>
 <body>
@@ -233,6 +287,8 @@ h1 {
 <div id="bracket">
   <div class="loading-msg">Cargando bracket…</div>
 </div>
+
+<div id="installBanner" class="install-banner" role="status"></div>
 
 <script>
 const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
@@ -345,7 +401,7 @@ function mkCard(g) {
 // ── Orden de rondas (de arriba hacia abajo) ───────────────
 // 1/16 primero (como pediste), luego avanza hacia la final.
 const ROUNDS = [
-  { key:'r32',  title:'1/16 de Final', ids:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88], open:true  },
+  { key:'r32',  title:'1/16 de Final', ids:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88], open:false },
   { key:'r16',  title:'Octavos',       ids:[89,90,91,92,93,94,95,96],                          open:false },
   { key:'qf',   title:'Cuartos',       ids:[97,98,99,100],                                     open:false },
   { key:'sf',   title:'Semifinal',     ids:[101,102],                                          open:false },
@@ -397,24 +453,35 @@ function buildRoundsHtml(byId) {
   }).join('');
 }
 
+// El estado "abierto" por defecto se resuelve 100% con CSS (max-height:none
+// en .round.open .round-body), así nunca depende de que este JS llegue a
+// ejecutarse a tiempo. Esta función solo anima los toggles manuales del usuario.
 function toggleRound(headerEl) {
   const round = headerEl.closest('.round');
   const body = round.querySelector('.round-body');
   const isOpen = round.classList.contains('open');
+
   if (isOpen) {
-    round.classList.remove('open');
-    body.style.maxHeight = '0px';
+    // Fijamos un alto en px (igual al actual) antes de animar a 0,
+    // porque no se puede animar suavemente desde "none".
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      round.classList.remove('open');
+      requestAnimationFrame(() => { body.style.maxHeight = '0px'; });
+    });
   } else {
     round.classList.add('open');
     body.style.maxHeight = body.scrollHeight + 'px';
+    // Al terminar la animación, soltamos a "none" para que si cambia el
+    // contenido (o se rota el teléfono) no quede recortado.
+    const onEnd = (e) => {
+      if (e.propertyName === 'max-height') {
+        body.style.maxHeight = 'none';
+        body.removeEventListener('transitionend', onEnd);
+      }
+    };
+    body.addEventListener('transitionend', onEnd);
   }
-}
-
-// Reabre correctamente tras cambios de contenido (re-mide alturas abiertas)
-function refreshOpenHeights() {
-  document.querySelectorAll('.round.open .round-body').forEach(body => {
-    body.style.maxHeight = body.scrollHeight + 'px';
-  });
 }
 
 function buildBracket(games) {
@@ -423,9 +490,6 @@ function buildBracket(games) {
 
   const html = buildSpotlight(byId) + buildRoundsHtml(byId);
   document.getElementById('bracket').innerHTML = html;
-
-  // Setear max-height inicial para la(s) ronda(s) abiertas por defecto
-  requestAnimationFrame(refreshOpenHeights);
 }
 
 // ── Carga principal ───────────────────────────────────────
@@ -455,11 +519,72 @@ async function load() {
   }
 }
 
-// Recalcula alturas si el usuario rota el teléfono o cambia el tamaño de fuente
-window.addEventListener('resize', refreshOpenHeights);
-
 load();
 setInterval(load, 120000);
+
+// ── Banner de instalación (aparece solo) ──────────────────
+const INSTALL_LS_KEY = 'mundial2026_install_dismissed_v1';
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+function wasDismissed() {
+  try { return localStorage.getItem(INSTALL_LS_KEY) === '1'; }
+  catch(e) { return false; }
+}
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  try { localStorage.setItem(INSTALL_LS_KEY, '1'); } catch(e) {}
+}
+
+const SHARE_ICON = `<svg class="share-ico" viewBox="0 0 24 24"><path d="M12 2l-5 5h3v9h4V7h3l-5-5zM5 13v7a2 2 0 002 2h10a2 2 0 002-2v-7h-2v7H7v-7H5z"/></svg>`;
+
+function showIosBanner() {
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">
+      Instala esta app: toca ${SHARE_ICON} <strong>Compartir</strong> y luego
+      <strong>"Agregar a pantalla de inicio"</strong>.
+    </span>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+}
+
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">Instala esta app para abrirla directo, sin el navegador de fondo.</span>
+    <button class="install-btn" id="installNowBtn">Instalar</button>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+  document.getElementById('installNowBtn').onclick = async () => {
+    el.style.display = 'none';
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    }
+  };
+});
+
+// En iOS no existe evento de instalación automática (restricción de Apple),
+// así que mostramos las instrucciones nosotros mismos, sin que el usuario
+// tenga que buscarlas.
+if (isIos() && !isStandalone() && !wasDismissed()) {
+  setTimeout(showIosBanner, 1500);
+}
 
 // ── Registro del Service Worker (PWA) ─────────────────────
 if ('serviceWorker' in navigator) {
