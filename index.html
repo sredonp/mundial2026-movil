@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Fase Final Mundial 2026</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mundial 2026">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background-color: #0f0f12;
+  color: #f1f1f4;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 16px 12px calc(env(safe-area-inset-bottom) + 24px);
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 1.35rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.subtitle {
+  color: #a0a0b0;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.74rem;
+  color: #8a8a9e;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.status-item { display:flex; align-items:center; gap:6px; }
+.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.dot.loading { background:#fbbf24; animation:pulse 1.5s infinite; }
+.dot.ok      { background:#4ade80; }
+.dot.err     { background:#ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Trofeo / Final destacada arriba ── */
+.spotlight {
+  background:linear-gradient(135deg,#2e2413,#1a1a24);
+  border:2px solid #e5a93b;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:20px;
+  box-shadow:0 0 22px rgba(229,169,59,.18);
+  text-align:center;
+}
+.spotlight .trophy { font-size:2.2rem; animation:float 3s ease-in-out infinite; margin-bottom:6px; }
+@keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+.spotlight .stitle {
+  font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
+  color:#e5a93b; font-weight:700; margin-bottom:10px;
+}
+.third-mini { margin-top:14px; padding-top:12px; border-top:1px dashed #3a3a4a; }
+.third-mini .stitle { color:#5c85d6; font-size:.66rem; }
+
+/* ── Secciones colapsables (rondas) ── */
+.round {
+  border:1px solid #2a2a35;
+  border-radius:10px;
+  margin-bottom:10px;
+  overflow:hidden;
+  background:#16161e;
+}
+
+.round-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:13px 14px;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.round-header:active { background:#1d1d28; }
+
+.round-title-wrap { display:flex; align-items:center; gap:9px; }
+
+.round-title {
+  font-size:.86rem;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:#e5a93b;
+  font-weight:700;
+}
+
+.round-count {
+  font-size:.68rem;
+  color:#6a6a7e;
+  background:#1f1f2a;
+  padding:2px 7px;
+  border-radius:20px;
+}
+
+.round-progress {
+  font-size:.68rem;
+  color:#4ade80;
+}
+
+.chevron {
+  width:18px; height:18px;
+  flex-shrink:0;
+  transition:transform .25s ease;
+  color:#8a8a9e;
+}
+.round.open .chevron { transform:rotate(180deg); }
+
+.round-body {
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .3s ease;
+  padding:0 10px;
+}
+.round.open .round-body { padding:0 10px 10px; }
+
+/* ── Cards de partido ── */
+.card {
+  background:#1a1a24;
+  border:1px solid #2e2e3e;
+  border-radius:8px;
+  padding:10px 11px;
+  margin:7px 0;
+}
+.card.done  { border-color:#4ade80; }
+
+.card-header {
+  font-size:.66rem;
+  color:#8a8a9e;
+  margin-bottom:8px;
+  border-bottom:1px solid #2a2a35;
+  padding-bottom:4px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.t-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:5px 0;
+  font-size:.88rem;
+}
+
+.t-info { display:flex; align-items:center; overflow:hidden; flex:1; min-width:0; }
+
+.flag {
+  width:24px; height:18px;
+  border-radius:2px;
+  margin-right:8px;
+  object-fit:cover;
+  flex-shrink:0;
+}
+.flag-ph { width:24px; height:18px; border-radius:2px; margin-right:8px; background:#2a2a35; border:1px dashed #444; flex-shrink:0; }
+
+.t-name {
+  font-weight:500;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+.t-name.pending { color:#8a8a9e; font-style:italic; }
+
+.score {
+  font-weight:700;
+  color:#e5a93b;
+  background:#252535;
+  padding:3px 8px;
+  border-radius:4px;
+  min-width:22px;
+  text-align:center;
+  flex-shrink:0;
+  margin-left:6px;
+  font-size:.86rem;
+}
+.score.live { color:#4ade80; }
+
+.card-footer {
+  font-size:.66rem;
+  color:#6a6a7e;
+  margin-top:6px;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.err-msg { color:#ef4444; text-align:center; padding:30px 14px; }
+.loading-msg { color:#8a8a9e; text-align:center; padding:30px 14px; font-size:.85rem; }
+
+/* Indicador de carga inicial centrado */
+#bracket { min-height: 100px; }
+</style>
+</head>
+<body>
+
+<h1>Fase Final del Mundial 2026</h1>
+<div class="subtitle">Datos en tiempo real · Horario Colombia (UTC-5)</div>
+
+<div class="status-bar">
+  <div class="status-item">
+    <span class="dot loading" id="dot"></span>
+    <span id="st">Cargando…</span>
+  </div>
+  <div class="status-item"><span id="upd">Última actualización: —</span></div>
+</div>
+
+<div id="bracket">
+  <div class="loading-msg">Cargando bracket…</div>
+</div>
+
+<script>
+const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
+
+// ── Banderas ──────────────────────────────────────────────
+const FLAGS = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr',
+  'Czech Republic':'cz','Czechia':'cz',
+  'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
+  'Turkey':'tr','Türkiye':'tr',
+  'Germany':'de','Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec',
+  'Curaçao':'cw','Curacao':'cw',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Cape Verde':'cv','Uruguay':'uy','Saudi Arabia':'sa',
+  'France':'fr','Norway':'no','Senegal':'sn','Iraq':'iq',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','DR Congo':'cd','Democratic Republic of the Congo':'cd',
+  'Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
+};
+
+// ── Estadios ─────────────────────────────────────────────
+const STAD = {
+  1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
+  5:'Hard Rock (Miami)',6:'MetLife (NY/NJ)',7:'Arrowhead (KC)',
+  8:'Lincoln Financial (Philly)',9:'Lumen Field (Seattle)',
+  10:'Gillette (Boston)',11:'Empower (Denver)',12:'Azteca (CDMX)',
+  13:'BC Place (Vancouver)',14:'Mercedes-Benz (Atlanta)',
+  15:'NRG (Houston)',16:'Q2 (Austin)',
+};
+
+// ── Fecha a Colombia UTC-5 ────────────────────────────────
+const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const pad   = n => String(n).padStart(2,'0');
+
+function fmtDate(s) {
+  if (!s) return '';
+  const [dp, tp] = s.split(' ');
+  const [mo,dd,yy] = dp.split('/');
+  const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
+  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+}
+
+// ── Resolver label cuando no hay nombre directo ───────────
+function resolveLabel(g, side) {
+  const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
+  const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
+
+  if (id && id !== '0' && nm) return nm;
+
+  if (!lbl) return '–';
+  let m;
+  m = lbl.match(/^Winner Group ([A-L])$/);
+  if (m) return `1.° Grupo ${m[1]}`;
+  m = lbl.match(/^Runner-up Group ([A-L])$/);
+  if (m) return `2.° Grupo ${m[1]}`;
+  m = lbl.match(/^3rd Group ([A-L/]+)$/);
+  if (m) return `Mejor 3.° (${m[1]})`;
+  m = lbl.match(/^Winner Match (\d+)$/);
+  if (m) return `Gan. #${m[1]}`;
+  m = lbl.match(/^Loser Match (\d+)$/);
+  if (m) return `Per. #${m[1]}`;
+  return lbl;
+}
+
+function isPending(name) {
+  return !name || name.startsWith('Gan.') || name.startsWith('Per.')
+    || name.startsWith('1.°') || name.startsWith('2.°')
+    || name.startsWith('Mejor');
+}
+
+// ── HTML de una fila de equipo ────────────────────────────
+function tRow(name, score, done) {
+  const pend = isPending(name);
+  const flagCode = FLAGS[name];
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${name}" class="flag"
+            onerror="this.outerHTML='<span class=\\'flag-ph\\'></span>'">`
+    : `<span class="flag-ph"></span>`;
+  const sc = (done && score !== null && score !== undefined && score !== 'null')
+    ? `<span class="score live">${score}</span>`
+    : `<span class="score">–</span>`;
+  return `<div class="t-row">
+    <div class="t-info">
+      ${flagHtml}
+      <span class="t-name ${pend?'pending':''}">${name || '–'}</span>
+    </div>${sc}</div>`;
+}
+
+// ── HTML de una match card ────────────────────────────────
+function mkCard(g) {
+  if (!g) return '';
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g,'h');
+  const a = resolveLabel(g,'a');
+  const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
+  return `<div class="card ${done?'done':''}">
+    <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
+    ${tRow(h, g.home_score, done)}
+    ${tRow(a, g.away_score, done)}
+    <div class="card-footer">${st}</div>
+  </div>`;
+}
+
+// ── Orden de rondas (de arriba hacia abajo) ───────────────
+// 1/16 primero (como pediste), luego avanza hacia la final.
+const ROUNDS = [
+  { key:'r32',  title:'1/16 de Final', ids:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88], open:true  },
+  { key:'r16',  title:'Octavos',       ids:[89,90,91,92,93,94,95,96],                          open:false },
+  { key:'qf',   title:'Cuartos',       ids:[97,98,99,100],                                     open:false },
+  { key:'sf',   title:'Semifinal',     ids:[101,102],                                          open:false },
+];
+
+function countDone(ids, byId) {
+  return ids.reduce((acc,id) => {
+    const g = byId[String(id)];
+    return acc + ((g && g.finished === 'TRUE') ? 1 : 0);
+  }, 0);
+}
+
+function buildSpotlight(byId) {
+  const final = byId['104'];
+  const third = byId['103'];
+  return `
+    <div class="spotlight">
+      <div class="trophy">🏆</div>
+      <div class="stitle">Gran Final</div>
+      ${final ? mkCard(final) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      <div class="third-mini">
+        <div class="stitle">Tercer Puesto</div>
+        ${third ? mkCard(third) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      </div>
+    </div>`;
+}
+
+function buildRoundsHtml(byId) {
+  return ROUNDS.map(r => {
+    const done = countDone(r.ids, byId);
+    const total = r.ids.length;
+    const cardsHtml = r.ids.map(id => mkCard(byId[String(id)])).join('');
+    return `
+      <div class="round ${r.open ? 'open':''}" data-key="${r.key}">
+        <div class="round-header" onclick="toggleRound(this)">
+          <div class="round-title-wrap">
+            <span class="round-title">${r.title}</span>
+            <span class="round-count">${total} partidos</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${done>0 ? `<span class="round-progress">${done}/${total} ✓</span>` : ''}
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="round-body">${cardsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleRound(headerEl) {
+  const round = headerEl.closest('.round');
+  const body = round.querySelector('.round-body');
+  const isOpen = round.classList.contains('open');
+  if (isOpen) {
+    round.classList.remove('open');
+    body.style.maxHeight = '0px';
+  } else {
+    round.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+}
+
+// Reabre correctamente tras cambios de contenido (re-mide alturas abiertas)
+function refreshOpenHeights() {
+  document.querySelectorAll('.round.open .round-body').forEach(body => {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  });
+}
+
+function buildBracket(games) {
+  const byId = {};
+  games.forEach(g => { byId[String(g.id)] = g; });
+
+  const html = buildSpotlight(byId) + buildRoundsHtml(byId);
+  document.getElementById('bracket').innerHTML = html;
+
+  // Setear max-height inicial para la(s) ronda(s) abiertas por defecto
+  requestAnimationFrame(refreshOpenHeights);
+}
+
+// ── Carga principal ───────────────────────────────────────
+async function load() {
+  document.getElementById('dot').className = 'dot loading';
+  document.getElementById('st').textContent = 'Actualizando…';
+  try {
+    const res  = await fetch(`${PROXY}?proxy=games`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const games = Array.isArray(data) ? data : (data.games || []);
+    if (!games.length) throw new Error('Sin partidos en la respuesta');
+
+    buildBracket(games);
+    document.getElementById('dot').className = 'dot ok';
+    document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
+
+    const now = new Date();
+    document.getElementById('upd').textContent =
+      `Última actualización: ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('bracket').innerHTML =
+      `<div class="err-msg">❌ ${e.message}<br><small>Verifica que el Apps Script tenga ?proxy=games activo.</small></div>`;
+    document.getElementById('dot').className = 'dot err';
+    document.getElementById('st').textContent = 'Error al cargar';
+  }
+}
+
+// Recalcula alturas si el usuario rota el teléfono o cambia el tamaño de fuente
+window.addEventListener('resize', refreshOpenHeights);
+
+load();
+setInterval(load, 120000);
+
+// ── Registro del Service Worker (PWA) ─────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW error:', err));
+  });
+}
+</script>
+</body>
+</html>
