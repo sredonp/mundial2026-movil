@@ -3,603 +3,432 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Bracket Mundial 2026</title>
-<meta name="theme-color" content="#0a0a10">
+<title>Fase Final Mundial 2026</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mundial 2026">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
 body {
-  background: #0a0a10;
+  background-color: #0f0f12;
   color: #f1f1f4;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 16px 12px calc(env(safe-area-inset-bottom) + 24px);
   min-height: 100vh;
-  overflow-x: auto;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ── Header ── */
-.header {
-  text-align: center;
-  padding: 14px 12px 10px;
-  position: sticky;
-  top: 0;
-  background: #0a0a10;
-  z-index: 10;
-  border-bottom: 1px solid #1e1e2a;
-}
-.header h1 {
-  font-size: .85rem;
+h1 {
+  font-size: 1.35rem;
+  color: #fff;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #e5a93b;
-  font-weight: 800;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+  text-align: center;
 }
-.header .sub {
-  font-size: .65rem;
-  color: #555568;
-  margin-top: 2px;
+
+.subtitle {
+  color: #a0a0b0;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+  text-align: center;
 }
+
 .status-bar {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  font-size: .65rem;
-  color: #555568;
-  margin-top: 6px;
+  gap: 16px;
+  font-size: 0.74rem;
+  color: #8a8a9e;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
 }
-.dot { display:inline-block; width:7px; height:7px; border-radius:50%; }
+
+.status-item { display:flex; align-items:center; gap:6px; }
+.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .dot.loading { background:#fbbf24; animation:pulse 1.5s infinite; }
-.dot.ok { background:#4ade80; }
-.dot.err { background:#ef4444; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.dot.ok      { background:#4ade80; }
+.dot.err     { background:#ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* ── Bracket wrapper ── */
-.bracket-scroll {
-  overflow-x: auto;
-  padding: 20px 0 30px;
-  -webkit-overflow-scrolling: touch;
+/* ── Trofeo / Final destacada arriba ── */
+.spotlight {
+  background:linear-gradient(135deg,#2e2413,#1a1a24);
+  border:2px solid #e5a93b;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:20px;
+  box-shadow:0 0 22px rgba(229,169,59,.18);
+  text-align:center;
 }
-
-/* ── Columna de ronda ── */
-.round-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.spotlight .trophy { font-size:2.2rem; animation:float 3s ease-in-out infinite; margin-bottom:6px; }
+@keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+.spotlight .stitle {
+  font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
+  color:#e5a93b; font-weight:700; margin-bottom:10px;
 }
+.third-mini { margin-top:14px; padding-top:12px; border-top:1px dashed #3a3a4a; }
+.third-mini .stitle { color:#5c85d6; font-size:.66rem; }
 
-.round-label {
-  font-size: .58rem;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: #e5a93b;
-  font-weight: 700;
-  margin-bottom: 10px;
-  white-space: nowrap;
-  text-align: center;
-  height: 18px;
-}
-
-/*
-  CLAVE DEL FIX DE ALINEACIÓN
-  ----------------------------
-  Cada "slot" de partido en cualquier ronda ocupa el mismo alto base (SLOT_H),
-  multiplicado por 2^ronda. Así, un partido de Octavos mide el doble que uno
-  de 1/16, uno de Cuartos el doble que uno de Octavos, etc. Como cada slot
-  se centra dentro de su propio alto (con flex+justify-content:center),
-  el partido de la ronda siguiente queda matemáticamente alineado en el punto
-  medio exacto entre los DOS partidos que lo alimentan en la ronda anterior.
-  Esto reemplaza el "justify-content:space-around" sobre toda la columna,
-  que repartía el espacio de forma pareja pero SIN relación real con qué
-  partidos alimentan a cuál (causa del bug original: el resultado de
-  CAN vs RSA aparecía a la altura visual de NED vs MAR).
-*/
-:root{
-  --slot-h: 64px; /* alto base de un partido en la ronda más temprana (1/16) */
+/* ── Secciones colapsables (rondas) ── */
+.round {
+  border:1px solid #2a2a35;
+  border-radius:10px;
+  margin-bottom:10px;
+  overflow:hidden;
+  background:#16161e;
 }
 
-.round-slots {
-  display: flex;
-  flex-direction: column;
+.round-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:13px 14px;
+  cursor:pointer;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.round-header:active { background:#1d1d28; }
+
+.round-title-wrap { display:flex; align-items:center; gap:9px; }
+
+.round-title {
+  font-size:.86rem;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:#e5a93b;
+  font-weight:700;
 }
 
-.match-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.round-count {
+  font-size:.68rem;
+  color:#6a6a7e;
+  background:#1f1f2a;
+  padding:2px 7px;
+  border-radius:20px;
 }
 
-/* ── Par de equipos (un match) ── */
-.match-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
+.round-progress {
+  font-size:.68rem;
+  color:#4ade80;
 }
 
-/* ── Celdita de equipo ── */
-.team-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 62px;
-  padding: 4px 3px;
-  border-radius: 6px;
-  background: #14141e;
-  border: 1px solid #2a2a3a;
-  gap: 1px;
-  position: relative;
-  cursor: default;
-  transition: border-color .2s;
+.chevron {
+  width:18px; height:18px;
+  flex-shrink:0;
+  transition:transform .25s ease;
+  color:#8a8a9e;
 }
-.team-slot.winner { border-color: #e5a93b; background: #1a1610; }
-.team-slot.loser  { opacity: .45; }
-.team-slot.tbd    { border-color: #1e1e2e; }
+.round.open .chevron { transform:rotate(180deg); }
 
-.team-name {
-  font-size: .48rem;
-  font-weight: 700;
-  color: #e5a93b;
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 56px;
-  text-overflow: ellipsis;
-  text-align: center;
-  line-height: 1;
+.round-body {
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .3s ease;
+  padding:0 10px;
 }
-.team-slot.tbd .team-name { color: #44444e; font-style: italic; }
+.round.open .round-body { padding:0 10px 10px; }
 
-.team-flag {
-  width: 28px;
-  height: 20px;
-  border-radius: 2px;
-  object-fit: cover;
-  display: block;
+/* ── Cards de partido ── */
+.card {
+  background:#1a1a24;
+  border:1px solid #2e2e3e;
+  border-radius:8px;
+  padding:10px 11px;
+  margin:7px 0;
 }
-.team-flag-ph {
-  width: 28px;
-  height: 20px;
-  border-radius: 2px;
-  background: #1e1e2e;
-  border: 1px dashed #333;
+.card.done  { border-color:#4ade80; }
+
+.card-header {
+  font-size:.66rem;
+  color:#8a8a9e;
+  margin-bottom:8px;
+  border-bottom:1px solid #2a2a35;
+  padding-bottom:4px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.team-score {
-  font-size: .65rem;
-  font-weight: 800;
-  color: #44445a;
-  line-height: 1;
-  min-height: 10px;
-}
-.team-score.has-score { color: #f1f1f4; }
-.team-score.winning   { color: #4ade80; }
-
-/* Separador entre los dos equipos */
-.match-vs {
-  font-size: .44rem;
-  color: #333340;
-  font-weight: 700;
-  margin: 1px 0;
-  line-height: 1;
+.t-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:5px 0;
+  font-size:.88rem;
 }
 
-/* Conector horizontal simple entre columnas */
-.connector-col {
-  width: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.t-info { display:flex; align-items:center; overflow:hidden; flex:1; min-width:0; }
+
+.flag {
+  width:24px; height:18px;
+  border-radius:2px;
+  margin-right:8px;
+  object-fit:cover;
+  flex-shrink:0;
 }
-.connector-col .line {
-  width: 14px;
-  height: 2px;
-  background: #2a2a3a;
+.flag-ph { width:24px; height:18px; border-radius:2px; margin-right:8px; background:#2a2a35; border:1px dashed #444; flex-shrink:0; }
+
+.t-name {
+  font-weight:500;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+.t-name.pending { color:#8a8a9e; font-style:italic; }
+
+.score {
+  font-weight:700;
+  color:#e5a93b;
+  background:#252535;
+  padding:3px 8px;
+  border-radius:4px;
+  min-width:22px;
+  text-align:center;
+  flex-shrink:0;
+  margin-left:6px;
+  font-size:.86rem;
+}
+.score.live { color:#4ade80; }
+
+.card-footer {
+  font-size:.66rem;
+  color:#6a6a7e;
+  margin-top:6px;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-/* ── Final central ── */
-.final-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 16px;
-}
-.trophy-icon {
-  font-size: 2rem;
-  animation: float 3s ease-in-out infinite;
-  line-height: 1;
-}
-@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-.champion-label {
-  font-size: .6rem;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #e5a93b;
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 4px;
-}
-.champion-slot {
-  width: 68px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 6px 4px;
-  border-radius: 8px;
-  background: #1a1610;
-  border: 2px solid #e5a93b;
-  box-shadow: 0 0 18px rgba(229,169,59,.2);
-}
-.champion-slot .team-name { color: #e5a93b; font-size: .52rem; }
-.champion-slot .team-score { color: #4ade80; font-size: .7rem; }
+.err-msg { color:#ef4444; text-align:center; padding:30px 14px; }
+.loading-msg { color:#8a8a9e; text-align:center; padding:30px 14px; font-size:.85rem; }
 
-/* ── 3er puesto ── */
-.third-section {
-  text-align: center;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed #1e1e2a;
-}
-.third-label {
-  font-size: .52rem;
-  color: #5c85d6;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-/* ── Match info tooltip/label ── */
-.match-info {
-  font-size: .42rem;
-  color: #333340;
-  text-align: center;
-  margin-top: 1px;
-  white-space: nowrap;
-}
-
-/* ── Loading / Error ── */
-.center-msg {
-  text-align: center;
-  padding: 60px 20px;
-  color: #555568;
-  font-size: .82rem;
-}
-
-.bracket-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  min-width: max-content;
-  padding: 0 12px;
-}
+/* Indicador de carga inicial centrado */
+#bracket { min-height: 100px; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>🏆 Fase Final · Mundial 2026</h1>
-  <div class="sub">Datos en tiempo real · Horario Colombia (UTC−5)</div>
-  <div class="status-bar">
-    <span><span class="dot loading" id="dot"></span> <span id="st">Cargando…</span></span>
-    <span id="upd">—</span>
+<h1>Fase Final del Mundial 2026</h1>
+<div class="subtitle">Datos en tiempo real · Horario Colombia (UTC-5)</div>
+
+<div class="status-bar">
+  <div class="status-item">
+    <span class="dot loading" id="dot"></span>
+    <span id="st">Cargando…</span>
   </div>
+  <div class="status-item"><span id="upd">Última actualización: —</span></div>
 </div>
 
-<div class="bracket-scroll">
-  <div id="bracket-root" class="center-msg">Cargando bracket…</div>
+<div id="bracket">
+  <div class="loading-msg">Cargando bracket…</div>
 </div>
 
 <script>
 const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
 
-// ── Datos de selecciones ──────────────────────────────────
+// ── Banderas ──────────────────────────────────────────────
 const FLAGS = {
   'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr',
-  'Czech Republic':'cz','Czechia':'cz','Switzerland':'ch','Canada':'ca',
-  'Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa','Brazil':'br',
-  'Morocco':'ma','Scotland':'gb-sct','Haiti':'ht','United States':'us','USA':'us',
-  'Australia':'au','Paraguay':'py','Turkey':'tr','Türkiye':'tr','Germany':'de',
-  'Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec','Curaçao':'cw','Curacao':'cw',
-  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn','Belgium':'be',
-  'Egypt':'eg','Iran':'ir','New Zealand':'nz','Spain':'es','Cape Verde':'cv',
-  'Uruguay':'uy','Saudi Arabia':'sa','France':'fr','Norway':'no','Senegal':'sn',
-  'Iraq':'iq','Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Czech Republic':'cz','Czechia':'cz',
+  'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
+  'Turkey':'tr','Türkiye':'tr',
+  'Germany':'de','Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec',
+  'Curaçao':'cw','Curacao':'cw',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Cape Verde':'cv','Uruguay':'uy','Saudi Arabia':'sa',
+  'France':'fr','Norway':'no','Senegal':'sn','Iraq':'iq',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
   'Portugal':'pt','DR Congo':'cd','Democratic Republic of the Congo':'cd',
-  'Uzbekistan':'uz','Colombia':'co','England':'gb-eng','Croatia':'hr',
-  'Ghana':'gh','Panama':'pa',
+  'Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
 
-const ABBR = {
-  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
-  'Czech Republic':'CZE','Czechia':'CZE','Switzerland':'SUI','Canada':'CAN',
-  'Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT','Brazil':'BRA',
-  'Morocco':'MAR','Scotland':'SCO','Haiti':'HAI','United States':'USA','USA':'USA',
-  'Australia':'AUS','Paraguay':'PAR','Turkey':'TUR','Türkiye':'TUR','Germany':'GER',
-  'Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU','Curaçao':'CUW','Curacao':'CUW',
-  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN','Belgium':'BEL',
-  'Egypt':'EGY','Iran':'IRN','New Zealand':'NZL','Spain':'ESP','Cape Verde':'CPV',
-  'Uruguay':'URU','Saudi Arabia':'KSA','France':'FRA','Norway':'NOR','Senegal':'SEN',
-  'Iraq':'IRQ','Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
-  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
-  'Uzbekistan':'UZB','Colombia':'COL','England':'ENG','Croatia':'CRO',
-  'Ghana':'GHA','Panama':'PAN',
+// ── Estadios ─────────────────────────────────────────────
+const STAD = {
+  1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
+  5:'Hard Rock (Miami)',6:'MetLife (NY/NJ)',7:'Arrowhead (KC)',
+  8:'Lincoln Financial (Philly)',9:'Lumen Field (Seattle)',
+  10:'Gillette (Boston)',11:'Empower (Denver)',12:'Azteca (CDMX)',
+  13:'BC Place (Vancouver)',14:'Mercedes-Benz (Atlanta)',
+  15:'NRG (Houston)',16:'Q2 (Austin)',
 };
 
-const pad = n => String(n).padStart(2,'0');
+// ── Fecha a Colombia UTC-5 ────────────────────────────────
 const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const pad   = n => String(n).padStart(2,'0');
 
 function fmtDate(s) {
   if (!s) return '';
   const [dp, tp] = s.split(' ');
   const [mo,dd,yy] = dp.split('/');
   const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
-  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+}
+
+// ── Resolver label cuando no hay nombre directo ───────────
+function resolveLabel(g, side) {
+  const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
+  const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
+
+  if (id && id !== '0' && nm) return nm;
+
+  if (!lbl) return '–';
+  let m;
+  m = lbl.match(/^Winner Group ([A-L])$/);
+  if (m) return `1.° Grupo ${m[1]}`;
+  m = lbl.match(/^Runner-up Group ([A-L])$/);
+  if (m) return `2.° Grupo ${m[1]}`;
+  m = lbl.match(/^3rd Group ([A-L/]+)$/);
+  if (m) return `Mejor 3.° (${m[1]})`;
+  m = lbl.match(/^Winner Match (\d+)$/);
+  if (m) return `Gan. #${m[1]}`;
+  m = lbl.match(/^Loser Match (\d+)$/);
+  if (m) return `Per. #${m[1]}`;
+  return lbl;
 }
 
 function isPending(name) {
   return !name || name.startsWith('Gan.') || name.startsWith('Per.')
     || name.startsWith('1.°') || name.startsWith('2.°')
-    || name.startsWith('Mejor') || name === '–';
+    || name.startsWith('Mejor');
 }
 
-function getAbbr(name) {
-  if (!name || name === '–') return '?';
-  if (isPending(name)) {
-    let m;
-    m = name.match(/^Gan\. #(\d+)$/); if (m) return `G${m[1]}`;
-    m = name.match(/^Per\. #(\d+)$/); if (m) return `P${m[1]}`;
-    m = name.match(/^1\.° Grupo ([A-L])$/); if (m) return `1°${m[1]}`;
-    m = name.match(/^2\.° Grupo ([A-L])$/); if (m) return `2°${m[1]}`;
-    if (name.startsWith('Mejor')) return '3°';
-    return '?';
-  }
-  return ABBR[name] || name.slice(0,3).toUpperCase();
-}
-
-function resolveLabel(g, side, byId, visited) {
-  visited = visited || new Set();
-  const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
-  const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
-  const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
-  if (id && id !== '0' && nm) return nm;
-  if (!lbl) return '–';
-  let m;
-  m = lbl.match(/^Winner Group ([A-L])$/);  if (m) return `1.° Grupo ${m[1]}`;
-  m = lbl.match(/^Runner-up Group ([A-L])$/); if (m) return `2.° Grupo ${m[1]}`;
-  m = lbl.match(/^3rd Group ([A-L/]+)$/); if (m) return `Mejor 3.° (${m[1]})`;
-  m = lbl.match(/^Winner Match (\d+)$/);
-  if (m) return resolveAdv(m[1], true, byId, visited) || `Gan. #${m[1]}`;
-  m = lbl.match(/^Loser Match (\d+)$/);
-  if (m) return resolveAdv(m[1], false, byId, visited) || `Per. #${m[1]}`;
-  return lbl;
-}
-
-function resolveAdv(matchId, wantW, byId, visited) {
-  if (!byId || visited.has(matchId)) return null;
-  visited.add(matchId);
-  const g = byId[String(matchId)];
-  if (!g || g.finished !== 'TRUE') return null;
-  const hs = parseFloat(g.home_score), as = parseFloat(g.away_score);
-  if (isNaN(hs) || isNaN(as) || hs === as) return null;
-  const homeAdv = wantW ? hs > as : hs < as;
-  return resolveLabel(g, homeAdv ? 'h' : 'a', byId, visited);
-}
-
-// ── Render de una celda de equipo ────────────────────────
-function teamSlotHtml(name, score, done, isWinner) {
+// ── HTML de una fila de equipo ────────────────────────────
+function tRow(name, score, done) {
   const pend = isPending(name);
-  const abbr = getAbbr(name);
-  const fc   = FLAGS[name];
-  const flagHtml = (!pend && fc)
-    ? `<img src="https://flagcdn.com/28x21/${fc}.png" class="team-flag"
-          onerror="this.outerHTML='<span class=\\'team-flag-ph\\'></span>'">`
-    : `<span class="team-flag-ph"></span>`;
-
-  const hasScore = done && score !== null && score !== undefined && score !== 'null';
-  const scoreClass = hasScore ? (isWinner ? 'has-score winning' : 'has-score') : '';
-  const scoreTxt = hasScore ? score : (done ? '–' : '');
-
-  const slotClass = pend ? 'tbd' : (isWinner ? 'winner' : (done ? 'loser' : ''));
-
-  return `<div class="team-slot ${slotClass}">
-    <div class="team-name">${abbr}</div>
-    ${flagHtml}
-    <div class="team-score ${scoreClass}">${scoreTxt}</div>
-  </div>`;
+  const flagCode = FLAGS[name];
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${name}" class="flag"
+            onerror="this.outerHTML='<span class=\\'flag-ph\\'></span>'">`
+    : `<span class="flag-ph"></span>`;
+  const sc = (done && score !== null && score !== undefined && score !== 'null')
+    ? `<span class="score live">${score}</span>`
+    : `<span class="score">–</span>`;
+  return `<div class="t-row">
+    <div class="t-info">
+      ${flagHtml}
+      <span class="t-name ${pend?'pending':''}">${name || '–'}</span>
+    </div>${sc}</div>`;
 }
 
-// ── Render de un partido ──────────────────────────────────
-function matchHtml(g, byId) {
-  if (!g) return emptyMatchHtml();
+// ── HTML de una match card ────────────────────────────────
+function mkCard(g) {
+  if (!g) return '';
   const done = g.finished === 'TRUE';
-  const h = resolveLabel(g, 'h', byId);
-  const a = resolveLabel(g, 'a', byId);
-  const hs = done ? g.home_score : null;
-  const as = done ? g.away_score : null;
-  const hScore = hs !== null && hs !== undefined ? parseFloat(hs) : null;
-  const aScore = as !== null && as !== undefined ? parseFloat(as) : null;
-  const hWin = done && hScore !== null && aScore !== null && hScore > aScore;
-  const aWin = done && hScore !== null && aScore !== null && aScore > hScore;
-
-  return `<div class="match-group">
-    ${teamSlotHtml(h, hs, done, hWin)}
-    <div class="match-vs">vs</div>
-    ${teamSlotHtml(a, as, done, aWin)}
-    <div class="match-info">#${g.id} ${done ? '✓' : fmtDate(g.local_date).split(' ').slice(0,3).join(' ')}</div>
+  const h = resolveLabel(g,'h');
+  const a = resolveLabel(g,'a');
+  const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
+  return `<div class="card ${done?'done':''}">
+    <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
+    ${tRow(h, g.home_score, done)}
+    ${tRow(a, g.away_score, done)}
+    <div class="card-footer">${st}</div>
   </div>`;
 }
 
-function emptyMatchHtml() {
-  return `<div class="match-group">
-    ${teamSlotHtml('', null, false, false)}
-    <div class="match-vs">vs</div>
-    ${teamSlotHtml('', null, false, false)}
-    <div class="match-info"></div>
-  </div>`;
+// ── Orden de rondas (de arriba hacia abajo) ───────────────
+// 1/16 primero (como pediste), luego avanza hacia la final.
+const ROUNDS = [
+  { key:'r32',  title:'1/16 de Final', ids:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88], open:true  },
+  { key:'r16',  title:'Octavos',       ids:[89,90,91,92,93,94,95,96],                          open:false },
+  { key:'qf',   title:'Cuartos',       ids:[97,98,99,100],                                     open:false },
+  { key:'sf',   title:'Semifinal',     ids:[101,102],                                          open:false },
+];
+
+function countDone(ids, byId) {
+  return ids.reduce((acc,id) => {
+    const g = byId[String(id)];
+    return acc + ((g && g.finished === 'TRUE') ? 1 : 0);
+  }, 0);
 }
 
-/*
-  ── Ids por ronda, en ORDEN DE BRACKET (no en orden numérico de id) ──
-  El orden dentro de cada array es CRÍTICO: el partido en la posición i de la
-  ronda N+1 debe ser exactamente el cruce entre las posiciones (2i) y (2i+1)
-  de la ronda N. Aquí es donde estaba el segundo posible foco de error: si el
-  orden de los ids no refleja qué partido sale de cuál par, el alineamiento
-  por posición (aunque ya esté arreglado en CSS) seguiría emparejando mal.
-
-  Mapeo verificado partido-a-partido (avance estándar de bracket de 32):
-   R16 (1/16):      73  74  75  76  77  78  79  80  |  81  82  83  84  85  86  87  88
-   Octavos:           89      90      91      92    |    93      94      95      96
-   Cuartos:               97              98          |        99             100
-   Semis:                       101                    |              102
-  Es decir: 73+74 -> 89 ; 75+76 -> 90 ; 77+78 -> 91 ; 79+80 -> 92
-            89+90 -> 97 ; 91+92 -> 98
-            97+98 -> 101
-  (mismo patrón para el lado derecho)
-*/
-const leftRounds  = [
-  [73,74,75,76,77,78,79,80],   // 1/16
-  [89,90,91,92],               // Octavos
-  [97,98],                     // Cuartos
-  [101]                        // Semi
-];
-const rightRounds = [
-  [81,82,83,84,85,86,87,88],   // 1/16
-  [93,94,95,96],               // Octavos
-  [99,100],                    // Cuartos
-  [102]                        // Semi
-];
-const FINAL_ID = 104;
-const THIRD_ID = 103;
-
-const leftLabels  = ['1/16','Octavos','Cuartos','Semi'];
-const rightLabelsReversed = ['Semi','Cuartos','Octavos','1/16'];
-
-const SLOT_H = 64; // debe coincidir con --slot-h en CSS
-
-function connectorColHtml() {
-  return `<div class="connector-col"><div class="line"></div></div>`;
+function buildSpotlight(byId) {
+  const final = byId['104'];
+  const third = byId['103'];
+  return `
+    <div class="spotlight">
+      <div class="trophy">🏆</div>
+      <div class="stitle">Gran Final</div>
+      ${final ? mkCard(final) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      <div class="third-mini">
+        <div class="stitle">Tercer Puesto</div>
+        ${third ? mkCard(third) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      </div>
+    </div>`;
 }
 
-/*
-  Construye una columna de ronda donde cada partido ocupa una "ranura" de alto
-  SLOT_H * 2^roundIndex, centrado verticalmente dentro de su ranura.
-  roundIndex = 0 para 1/16, 1 para Octavos, 2 para Cuartos, 3 para Semi.
-  Esto garantiza que el partido i de la ronda roundIndex quede alineado
-  exactamente en el punto medio de los partidos (2i, 2i+1) de la ronda
-  roundIndex-1, sin depender de space-around ni de conteos dispares.
-*/
-function roundColumnHtml(ids, label, roundIndex, byId) {
-  const slotHeight = SLOT_H * Math.pow(2, roundIndex);
-  const slots = ids.map(id => {
-    const inner = matchHtml(byId[String(id)], byId);
-    return `<div class="match-slot" style="height:${slotHeight}px;">${inner}</div>`;
+function buildRoundsHtml(byId) {
+  return ROUNDS.map(r => {
+    const done = countDone(r.ids, byId);
+    const total = r.ids.length;
+    const cardsHtml = r.ids.map(id => mkCard(byId[String(id)])).join('');
+    return `
+      <div class="round ${r.open ? 'open':''}" data-key="${r.key}">
+        <div class="round-header" onclick="toggleRound(this)">
+          <div class="round-title-wrap">
+            <span class="round-title">${r.title}</span>
+            <span class="round-count">${total} partidos</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${done>0 ? `<span class="round-progress">${done}/${total} ✓</span>` : ''}
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="round-body">${cardsHtml}</div>
+      </div>`;
   }).join('');
-  return `<div class="round-col">
-    <div class="round-label">${label}</div>
-    <div class="round-slots">${slots}</div>
-  </div>`;
 }
 
-function sideLeftHtml(rounds, labels, byId) {
-  const cols = rounds.map((ids, i) => roundColumnHtml(ids, labels[i], i, byId));
-  return `<div class="bracket-row">${cols.join(connectorColHtml())}</div>`;
+function toggleRound(headerEl) {
+  const round = headerEl.closest('.round');
+  const body = round.querySelector('.round-body');
+  const isOpen = round.classList.contains('open');
+  if (isOpen) {
+    round.classList.remove('open');
+    body.style.maxHeight = '0px';
+  } else {
+    round.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
 }
 
-function sideRightHtml(rounds, labelsReversed, byId) {
-  // rounds llega en orden [1/16, Octavos, Cuartos, Semi]; para el lado derecho
-  // se dibuja en espejo: Semi, Cuartos, Octavos, 1/16 (de adentro hacia afuera)
-  const reversedRounds = [...rounds].reverse();        // [Semi, Cuartos, Octavos, 1/16]
-  const reversedIndexes = [3,2,1,0];                    // roundIndex real de cada una
-  const cols = reversedRounds.map((ids, i) =>
-    roundColumnHtml(ids, labelsReversed[i], reversedIndexes[i], byId)
-  );
-  return `<div class="bracket-row">${cols.join(connectorColHtml())}</div>`;
+// Reabre correctamente tras cambios de contenido (re-mide alturas abiertas)
+function refreshOpenHeights() {
+  document.querySelectorAll('.round.open .round-body').forEach(body => {
+    body.style.maxHeight = body.scrollHeight + 'px';
+  });
 }
 
-function finalCenterHtml(byId) {
-  const finalGame = byId[String(FINAL_ID)];
-  const thirdGame = byId[String(THIRD_ID)];
-
-  const fh = finalGame ? resolveLabel(finalGame,'h',byId) : '–';
-  const fa = finalGame ? resolveLabel(finalGame,'a',byId) : '–';
-  const fdone = finalGame && finalGame.finished === 'TRUE';
-  const fhs = fdone ? parseFloat(finalGame.home_score) : null;
-  const fas = fdone ? parseFloat(finalGame.away_score) : null;
-  const fhWin = fdone && fhs !== null && fas !== null && fhs > fas;
-  const faWin = fdone && fhs !== null && fas !== null && fas > fhs;
-  const champion = fhWin ? fh : (faWin ? fa : null);
-  const championScore = fhWin ? fhs : (faWin ? fas : null);
-
-  const champFlag = champion && FLAGS[champion]
-    ? `<img src="https://flagcdn.com/28x21/${FLAGS[champion]}.png" class="team-flag"
-           onerror="this.outerHTML='<span class=\\'team-flag-ph\\'></span>'">`
-    : `<span class="team-flag-ph"></span>`;
-  const champAbbr = champion ? getAbbr(champion) : '?';
-  const champScoreTxt = championScore !== null ? championScore : '';
-
-  const thDone = thirdGame && thirdGame.finished === 'TRUE';
-  const thH = thirdGame ? resolveLabel(thirdGame,'h',byId) : '–';
-  const thA = thirdGame ? resolveLabel(thirdGame,'a',byId) : '–';
-  const thHWin = thDone && parseFloat(thirdGame.home_score) > parseFloat(thirdGame.away_score);
-  const thAWin = thDone && parseFloat(thirdGame.away_score) > parseFloat(thirdGame.home_score);
-
-  return `<div class="final-col">
-    <div class="round-label" style="margin-bottom:6px">FINAL</div>
-    <div class="trophy-icon">🏆</div>
-    <div class="champion-label">CAMPEÓN</div>
-    <div class="champion-slot">
-      <div class="team-name" style="color:#e5a93b;font-size:.52rem;">${champAbbr}</div>
-      ${champFlag}
-      <div class="team-score" style="color:#4ade80;font-size:.7rem;font-weight:900;">${champScoreTxt}</div>
-    </div>
-    <div style="margin-top:6px;width:2px;height:18px;background:#2a2a3a;margin-left:auto;margin-right:auto;"></div>
-    ${finalGame ? `<div class="match-group" style="margin-top:2px;">
-      ${teamSlotHtml(fh, fdone?finalGame.home_score:null, fdone, fhWin)}
-      <div class="match-vs">vs</div>
-      ${teamSlotHtml(fa, fdone?finalGame.away_score:null, fdone, faWin)}
-      <div class="match-info">#${FINAL_ID}</div>
-    </div>` : emptyMatchHtml()}
-    <div class="third-section">
-      <div class="third-label">🥉 3er Puesto</div>
-      ${thirdGame ? `<div class="match-group">
-        ${teamSlotHtml(thH, thDone?thirdGame.home_score:null, thDone, thHWin)}
-        <div class="match-vs">vs</div>
-        ${teamSlotHtml(thA, thDone?thirdGame.away_score:null, thDone, thAWin)}
-        <div class="match-info">#${THIRD_ID}</div>
-      </div>` : emptyMatchHtml()}
-    </div>
-  </div>`;
-}
-
-// ── Construcción del bracket ──────────────────────────────
 function buildBracket(games) {
   const byId = {};
   games.forEach(g => { byId[String(g.id)] = g; });
 
-  const leftHtml  = sideLeftHtml(leftRounds, leftLabels, byId);
-  const rightHtml = sideRightHtml(rightRounds, rightLabelsReversed, byId);
-  const centerHtml = finalCenterHtml(byId);
+  const html = buildSpotlight(byId) + buildRoundsHtml(byId);
+  document.getElementById('bracket').innerHTML = html;
 
-  const html = `<div class="bracket-row" style="align-items:center;">
-    ${leftHtml}
-    ${connectorColHtml()}
-    ${centerHtml}
-    ${connectorColHtml()}
-    ${rightHtml}
-  </div>`;
-
-  document.getElementById('bracket-root').innerHTML = html;
-  document.getElementById('bracket-root').className = '';
-  document.getElementById('bracket-root').style = 'overflow-x:auto;padding:16px 0 30px;-webkit-overflow-scrolling:touch;';
+  // Setear max-height inicial para la(s) ronda(s) abiertas por defecto
+  requestAnimationFrame(refreshOpenHeights);
 }
 
-// ── Carga ─────────────────────────────────────────────────
+// ── Carga principal ───────────────────────────────────────
 async function load() {
   document.getElementById('dot').className = 'dot loading';
   document.getElementById('st').textContent = 'Actualizando…';
@@ -608,22 +437,36 @@ async function load() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const games = Array.isArray(data) ? data : (data.games || []);
-    if (!games.length) throw new Error('Sin partidos');
+    if (!games.length) throw new Error('Sin partidos en la respuesta');
+
     buildBracket(games);
     document.getElementById('dot').className = 'dot ok';
-    document.getElementById('st').textContent = `${games.length} partidos ✓`;
+    document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
+
     const now = new Date();
-    document.getElementById('upd').textContent = `Act. ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+    document.getElementById('upd').textContent =
+      `Última actualización: ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
   } catch(e) {
     console.error(e);
-    document.getElementById('bracket-root').innerHTML = `<div class="center-msg">❌ ${e.message}</div>`;
+    document.getElementById('bracket').innerHTML =
+      `<div class="err-msg">❌ ${e.message}<br><small>Verifica que el Apps Script tenga ?proxy=games activo.</small></div>`;
     document.getElementById('dot').className = 'dot err';
-    document.getElementById('st').textContent = 'Error';
+    document.getElementById('st').textContent = 'Error al cargar';
   }
 }
 
+// Recalcula alturas si el usuario rota el teléfono o cambia el tamaño de fuente
+window.addEventListener('resize', refreshOpenHeights);
+
 load();
 setInterval(load, 120000);
+
+// ── Registro del Service Worker (PWA) ─────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW error:', err));
+  });
+}
 </script>
 </body>
 </html>
