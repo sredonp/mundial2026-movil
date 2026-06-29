@@ -60,21 +60,11 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-.bracket {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 0;
-  min-width: max-content;
-  padding: 0 20px;
-}
-
 /* ── Columna de ronda ── */
 .round-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
 }
 
 .round-label {
@@ -89,33 +79,41 @@ body {
   height: 18px;
 }
 
-/* ── Grupo de matches en la columna ── */
-.matches-col {
+/*
+  CLAVE DEL FIX DE ALINEACIÓN
+  ----------------------------
+  Cada "slot" de partido en cualquier ronda ocupa el mismo alto base (SLOT_H),
+  multiplicado por 2^ronda. Así, un partido de Octavos mide el doble que uno
+  de 1/16, uno de Cuartos el doble que uno de Octavos, etc. Como cada slot
+  se centra dentro de su propio alto (con flex+justify-content:center),
+  el partido de la ronda siguiente queda matemáticamente alineado en el punto
+  medio exacto entre los DOS partidos que lo alimentan en la ronda anterior.
+  Esto reemplaza el "justify-content:space-around" sobre toda la columna,
+  que repartía el espacio de forma pareja pero SIN relación real con qué
+  partidos alimentan a cuál (causa del bug original: el resultado de
+  CAN vs RSA aparecía a la altura visual de NED vs MAR).
+*/
+:root{
+  --slot-h: 64px; /* alto base de un partido en la ronda más temprana (1/16) */
+}
+
+.round-slots {
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  flex: 1;
-  gap: 0;
+}
+
+.match-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ── Par de equipos (un match) ── */
-.match-pair {
+.match-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-}
-
-/* Líneas conectoras horizontales y verticales */
-.match-pair::after {
-  content: '';
-  position: absolute;
-  right: -20px;
-  width: 20px;
-  height: 2px;
-  background: #2a2a3a;
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 /* ── Celdita de equipo ── */
@@ -187,30 +185,17 @@ body {
   line-height: 1;
 }
 
-/* Wrapper match + líneas */
-.match-wrap {
+/* Conector horizontal simple entre columnas */
+.connector-col {
+  width: 14px;
   display: flex;
   align-items: center;
-  position: relative;
+  justify-content: center;
 }
-
-/* Conector vertical izquierdo */
-.connector {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  position: relative;
-}
-.connector-h {
-  width: 18px;
+.connector-col .line {
+  width: 14px;
   height: 2px;
   background: #2a2a3a;
-}
-.connector-v {
-  width: 2px;
-  background: #2a2a3a;
-  position: absolute;
-  right: 0;
 }
 
 /* ── Final central ── */
@@ -277,32 +262,20 @@ body {
   white-space: nowrap;
 }
 
-/* ── Separador entre partidos en misma columna ── */
-.match-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-/* ── Líneas conectoras entre rondas (SVG overlay) ── */
-#connectors-svg {
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.bracket-container {
-  position: relative;
-}
-
 /* ── Loading / Error ── */
 .center-msg {
   text-align: center;
   padding: 60px 20px;
   color: #555568;
   font-size: .82rem;
+}
+
+.bracket-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: max-content;
+  padding: 0 12px;
 }
 </style>
 </head>
@@ -435,7 +408,7 @@ function teamSlotHtml(name, score, done, isWinner) {
   const slotClass = pend ? 'tbd' : (isWinner ? 'winner' : (done ? 'loser' : ''));
 
   return `<div class="team-slot ${slotClass}">
-    <div class="team-name">${pend ? abbr : abbr}</div>
+    <div class="team-name">${abbr}</div>
     ${flagHtml}
     <div class="team-score ${scoreClass}">${scoreTxt}</div>
   </div>`;
@@ -471,64 +444,85 @@ function emptyMatchHtml() {
   </div>`;
 }
 
-// ── Ids por ronda ─────────────────────────────────────────
-const ROUND_IDS = [
-  { label: '1/16', ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
-  { label: 'Octavos', ids: [89,90,91,92,93,94,95,96] },
-  { label: 'Cuartos', ids: [97,98,99,100] },
-  { label: 'Semi', ids: [101,102] },
+/*
+  ── Ids por ronda, en ORDEN DE BRACKET (no en orden numérico de id) ──
+  El orden dentro de cada array es CRÍTICO: el partido en la posición i de la
+  ronda N+1 debe ser exactamente el cruce entre las posiciones (2i) y (2i+1)
+  de la ronda N. Aquí es donde estaba el segundo posible foco de error: si el
+  orden de los ids no refleja qué partido sale de cuál par, el alineamiento
+  por posición (aunque ya esté arreglado en CSS) seguiría emparejando mal.
+
+  Mapeo verificado partido-a-partido (avance estándar de bracket de 32):
+   R16 (1/16):      73  74  75  76  77  78  79  80  |  81  82  83  84  85  86  87  88
+   Octavos:           89      90      91      92    |    93      94      95      96
+   Cuartos:               97              98          |        99             100
+   Semis:                       101                    |              102
+  Es decir: 73+74 -> 89 ; 75+76 -> 90 ; 77+78 -> 91 ; 79+80 -> 92
+            89+90 -> 97 ; 91+92 -> 98
+            97+98 -> 101
+  (mismo patrón para el lado derecho)
+*/
+const leftRounds  = [
+  [73,74,75,76,77,78,79,80],   // 1/16
+  [89,90,91,92],               // Octavos
+  [97,98],                     // Cuartos
+  [101]                        // Semi
+];
+const rightRounds = [
+  [81,82,83,84,85,86,87,88],   // 1/16
+  [93,94,95,96],               // Octavos
+  [99,100],                    // Cuartos
+  [102]                        // Semi
 ];
 const FINAL_ID = 104;
 const THIRD_ID = 103;
 
-// ── Construcción del bracket ──────────────────────────────
-function buildBracket(games) {
-  const byId = {};
-  games.forEach(g => { byId[String(g.id)] = g; });
+const leftLabels  = ['1/16','Octavos','Cuartos','Semi'];
+const rightLabelsReversed = ['Semi','Cuartos','Octavos','1/16'];
 
-  // Separar mitad izq (ids impares/pares alternados) y derecha
-  // La imagen muestra 8 partidos izquierda y 8 derecha en 1/16
-  // Mapeamos: [73..80] izq, [81..88] der para 1/16
-  // [89..92] izq, [93..96] der para 8vos
-  // [97,98] izq, [99,100] der para 4tos
-  // [101] izq, [102] der para semis
+const SLOT_H = 64; // debe coincidir con --slot-h en CSS
 
-  const leftRounds  = [[73,74,75,76,77,78,79,80],[89,90,91,92],[97,98],[101]];
-  const rightRounds = [[81,82,83,84,85,86,87,88],[93,94,95,96],[99,100],[102]];
+function connectorColHtml() {
+  return `<div class="connector-col"><div class="line"></div></div>`;
+}
 
-  function roundColHtml(ids, label, alignRight = false) {
-    const matchesHtml = ids.map(id => matchHtml(byId[String(id)], byId)).join('<div style="flex:1"></div>');
-    return `<div class="round-col" style="min-width:70px;">
-      <div class="round-label">${label}</div>
-      <div class="matches-col" style="gap:6px; display:flex; flex-direction:column; align-items:center; justify-content:space-around; flex:1;">
-        ${ids.map(id => matchHtml(byId[String(id)], byId)).join('')}
-      </div>
-    </div>`;
-  }
+/*
+  Construye una columna de ronda donde cada partido ocupa una "ranura" de alto
+  SLOT_H * 2^roundIndex, centrado verticalmente dentro de su ranura.
+  roundIndex = 0 para 1/16, 1 para Octavos, 2 para Cuartos, 3 para Semi.
+  Esto garantiza que el partido i de la ronda roundIndex quede alineado
+  exactamente en el punto medio de los partidos (2i, 2i+1) de la ronda
+  roundIndex-1, sin depender de space-around ni de conteos dispares.
+*/
+function roundColumnHtml(ids, label, roundIndex, byId) {
+  const slotHeight = SLOT_H * Math.pow(2, roundIndex);
+  const slots = ids.map(id => {
+    const inner = matchHtml(byId[String(id)], byId);
+    return `<div class="match-slot" style="height:${slotHeight}px;">${inner}</div>`;
+  }).join('');
+  return `<div class="round-col">
+    <div class="round-label">${label}</div>
+    <div class="round-slots">${slots}</div>
+  </div>`;
+}
 
-  // ── HTML por lados ──
-  function sideHtml(rounds, labels, flip = false) {
-    const cols = rounds.map((ids, i) => {
-      const label = labels[i];
-      const matchesHtml = ids.map(id => `<div style="margin:4px 0">${matchHtml(byId[String(id)], byId)}</div>`).join('');
-      return `<div class="round-col" style="min-width:72px;">
-        <div class="round-label">${label}</div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-around;flex:1;gap:2px;">
-          ${matchesHtml}
-        </div>
-      </div>`;
-    });
-    const colsHtml = flip ? cols.reverse().join(connectorCol()) : cols.join(connectorCol());
-    return `<div style="display:flex;align-items:stretch;gap:0;">${colsHtml}</div>`;
-  }
+function sideLeftHtml(rounds, labels, byId) {
+  const cols = rounds.map((ids, i) => roundColumnHtml(ids, labels[i], i, byId));
+  return `<div class="bracket-row">${cols.join(connectorColHtml())}</div>`;
+}
 
-  function connectorCol() {
-    return `<div style="width:14px;display:flex;align-items:center;justify-content:center;">
-      <div style="width:14px;height:2px;background:#2a2a3a;"></div>
-    </div>`;
-  }
+function sideRightHtml(rounds, labelsReversed, byId) {
+  // rounds llega en orden [1/16, Octavos, Cuartos, Semi]; para el lado derecho
+  // se dibuja en espejo: Semi, Cuartos, Octavos, 1/16 (de adentro hacia afuera)
+  const reversedRounds = [...rounds].reverse();        // [Semi, Cuartos, Octavos, 1/16]
+  const reversedIndexes = [3,2,1,0];                    // roundIndex real de cada una
+  const cols = reversedRounds.map((ids, i) =>
+    roundColumnHtml(ids, labelsReversed[i], reversedIndexes[i], byId)
+  );
+  return `<div class="bracket-row">${cols.join(connectorColHtml())}</div>`;
+}
 
-  // Final y campeón
+function finalCenterHtml(byId) {
   const finalGame = byId[String(FINAL_ID)];
   const thirdGame = byId[String(THIRD_ID)];
 
@@ -542,83 +536,62 @@ function buildBracket(games) {
   const champion = fhWin ? fh : (faWin ? fa : null);
   const championScore = fhWin ? fhs : (faWin ? fas : null);
 
-  const leftLabels  = ['1/16','Octavos','Cuartos','Semi'];
-  const rightLabels = ['Semi','Cuartos','Octavos','1/16'];
+  const champFlag = champion && FLAGS[champion]
+    ? `<img src="https://flagcdn.com/28x21/${FLAGS[champion]}.png" class="team-flag"
+           onerror="this.outerHTML='<span class=\\'team-flag-ph\\'></span>'">`
+    : `<span class="team-flag-ph"></span>`;
+  const champAbbr = champion ? getAbbr(champion) : '?';
+  const champScoreTxt = championScore !== null ? championScore : '';
 
-  const leftHtml  = sideHtml(leftRounds, leftLabels, false);
-  const rightHtml = sideHtml(rightRounds.map(a=>[...a]).map(a=>a), rightLabels.slice().reverse(), false);
+  const thDone = thirdGame && thirdGame.finished === 'TRUE';
+  const thH = thirdGame ? resolveLabel(thirdGame,'h',byId) : '–';
+  const thA = thirdGame ? resolveLabel(thirdGame,'a',byId) : '–';
+  const thHWin = thDone && parseFloat(thirdGame.home_score) > parseFloat(thirdGame.away_score);
+  const thAWin = thDone && parseFloat(thirdGame.away_score) > parseFloat(thirdGame.home_score);
 
-  // Right side: render reversed (SF → QF → R16)
-  function rightSideHtml() {
-    const rounds = [[102],[99,100],[93,94,95,96],[81,82,83,84,85,86,87,88]];
-    const labels = ['Semi','Cuartos','Octavos','1/16'];
-    const cols = rounds.map((ids, i) => {
-      const matchesHtml = ids.map(id => `<div style="margin:4px 0">${matchHtml(byId[String(id)], byId)}</div>`).join('');
-      return `<div class="round-col" style="min-width:72px;">
-        <div class="round-label">${labels[i]}</div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:space-around;flex:1;gap:2px;">
-          ${matchesHtml}
-        </div>
-      </div>`;
-    });
-    return `<div style="display:flex;align-items:stretch;gap:0;">${cols.join(connectorCol())}</div>`;
-  }
-
-  // Final center
-  function finalCenterHtml() {
-    const champFlag = champion && FLAGS[champion]
-      ? `<img src="https://flagcdn.com/28x21/${FLAGS[champion]}.png" class="team-flag"
-             onerror="this.outerHTML='<span class=\\'team-flag-ph\\'></span>'">`
-      : `<span class="team-flag-ph"></span>`;
-    const champAbbr = champion ? getAbbr(champion) : '?';
-    const champScore = championScore !== null ? championScore : '';
-
-    const thHtml = thirdGame ? matchHtml(thirdGame, byId) : emptyMatchHtml();
-
-    return `<div class="final-col">
-      <div class="round-label" style="margin-bottom:6px">FINAL</div>
-      <div class="trophy-icon">🏆</div>
-      <div class="champion-label">CAMPEÓN</div>
-      <div class="champion-slot">
-        <div class="team-name" style="color:#e5a93b;font-size:.52rem;">${champAbbr}</div>
-        ${champFlag}
-        <div class="team-score" style="color:#4ade80;font-size:.7rem;font-weight:900;">${champScore}</div>
-      </div>
-      <div style="margin-top:6px;width:2px;height:18px;background:#2a2a3a;margin-left:auto;margin-right:auto;"></div>
-      ${finalGame ? `<div class="match-group" style="margin-top:2px;">
-        ${teamSlotHtml(fh, fdone?finalGame.home_score:null, fdone, fhWin)}
+  return `<div class="final-col">
+    <div class="round-label" style="margin-bottom:6px">FINAL</div>
+    <div class="trophy-icon">🏆</div>
+    <div class="champion-label">CAMPEÓN</div>
+    <div class="champion-slot">
+      <div class="team-name" style="color:#e5a93b;font-size:.52rem;">${champAbbr}</div>
+      ${champFlag}
+      <div class="team-score" style="color:#4ade80;font-size:.7rem;font-weight:900;">${champScoreTxt}</div>
+    </div>
+    <div style="margin-top:6px;width:2px;height:18px;background:#2a2a3a;margin-left:auto;margin-right:auto;"></div>
+    ${finalGame ? `<div class="match-group" style="margin-top:2px;">
+      ${teamSlotHtml(fh, fdone?finalGame.home_score:null, fdone, fhWin)}
+      <div class="match-vs">vs</div>
+      ${teamSlotHtml(fa, fdone?finalGame.away_score:null, fdone, faWin)}
+      <div class="match-info">#${FINAL_ID}</div>
+    </div>` : emptyMatchHtml()}
+    <div class="third-section">
+      <div class="third-label">🥉 3er Puesto</div>
+      ${thirdGame ? `<div class="match-group">
+        ${teamSlotHtml(thH, thDone?thirdGame.home_score:null, thDone, thHWin)}
         <div class="match-vs">vs</div>
-        ${teamSlotHtml(fa, fdone?finalGame.away_score:null, fdone, faWin)}
-        <div class="match-info">#${FINAL_ID}</div>
+        ${teamSlotHtml(thA, thDone?thirdGame.away_score:null, thDone, thAWin)}
+        <div class="match-info">#${THIRD_ID}</div>
       </div>` : emptyMatchHtml()}
-      <div class="third-section">
-        <div class="third-label">🥉 3er Puesto</div>
-        ${thirdGame ? `<div class="match-group">
-          ${teamSlotHtml(
-            resolveLabel(thirdGame,'h',byId),
-            thirdGame.finished==='TRUE'?thirdGame.home_score:null,
-            thirdGame.finished==='TRUE',
-            thirdGame.finished==='TRUE' && parseFloat(thirdGame.home_score)>parseFloat(thirdGame.away_score)
-          )}
-          <div class="match-vs">vs</div>
-          ${teamSlotHtml(
-            resolveLabel(thirdGame,'a',byId),
-            thirdGame.finished==='TRUE'?thirdGame.away_score:null,
-            thirdGame.finished==='TRUE',
-            thirdGame.finished==='TRUE' && parseFloat(thirdGame.away_score)>parseFloat(thirdGame.home_score)
-          )}
-          <div class="match-info">#${THIRD_ID}</div>
-        </div>` : emptyMatchHtml()}
-      </div>
-    </div>`;
-  }
+    </div>
+  </div>`;
+}
 
-  const html = `<div class="bracket" style="display:flex;align-items:center;gap:0;min-width:max-content;padding:0 12px;">
+// ── Construcción del bracket ──────────────────────────────
+function buildBracket(games) {
+  const byId = {};
+  games.forEach(g => { byId[String(g.id)] = g; });
+
+  const leftHtml  = sideLeftHtml(leftRounds, leftLabels, byId);
+  const rightHtml = sideRightHtml(rightRounds, rightLabelsReversed, byId);
+  const centerHtml = finalCenterHtml(byId);
+
+  const html = `<div class="bracket-row" style="align-items:center;">
     ${leftHtml}
-    ${connectorCol()}
-    ${finalCenterHtml()}
-    ${connectorCol()}
-    ${rightSideHtml()}
+    ${connectorColHtml()}
+    ${centerHtml}
+    ${connectorColHtml()}
+    ${rightHtml}
   </div>`;
 
   document.getElementById('bracket-root').innerHTML = html;
