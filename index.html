@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Fase Final Mundial 2026</title>
 
+<!-- Vista previa al compartir (WhatsApp, Twitter/X, Facebook, Instagram, etc.) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Fase Final del Mundial 2026">
+<meta property="og:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia. Instalable como app en tu teléfono.">
+<meta property="og:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://sredonp.github.io/mundial2026-movil/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fase Final del Mundial 2026">
+<meta name="twitter:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia.">
+<meta name="twitter:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
+
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f0f12">
@@ -77,64 +90,113 @@ h1 {
 .third-mini { margin-top:14px; padding-top:12px; border-top:1px dashed #3a3a4a; }
 .third-mini .stitle { color:#5c85d6; font-size:.66rem; }
 
-/* ── Secciones colapsables (rondas) ── */
-.round {
-  border:1px solid #2a2a35;
-  border-radius:10px;
-  margin-bottom:10px;
-  overflow:hidden;
-  background:#16161e;
+/* Ajustes del spotlight cuando vive dentro de la columna central del árbol
+   (ahora usa mini-tarjetas, igual que el resto del árbol → mucho más angosta) */
+.tree-center .spotlight { width:90px; margin-bottom:0; padding:8px 5px; }
+.tree-center .spotlight .trophy { font-size:1.3rem; margin-bottom:3px; }
+.tree-center .spotlight .stitle { font-size:.52rem; margin-bottom:5px; letter-spacing:.2px; }
+.tree-center .third-mini { margin-top:8px; padding-top:7px; }
+
+/* ── Árbol horizontal (scroll lateral mínimo) ──────────────── */
+.tree-wrapper {
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:4px 0 14px;
 }
 
-.round-header {
+.tree-grid {
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:13px 14px;
-  cursor:pointer;
-  user-select:none;
-  -webkit-user-select:none;
+  align-items:stretch;
+  gap:4px;
+  padding:0 2px;
+  width:max-content;
 }
-.round-header:active { background:#1d1d28; }
 
-.round-title-wrap { display:flex; align-items:center; gap:9px; }
+.tree-col {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:6px;
+  width:70px;
+  flex-shrink:0;
+}
 
-.round-title {
-  font-size:.86rem;
+.tree-col-title {
+  font-size:.54rem;
+  text-align:center;
   text-transform:uppercase;
-  letter-spacing:1px;
+  letter-spacing:.2px;
   color:#e5a93b;
   font-weight:700;
+  margin-bottom:2px;
+  white-space:nowrap;
 }
 
-.round-count {
-  font-size:.68rem;
-  color:#6a6a7e;
-  background:#1f1f2a;
-  padding:2px 7px;
-  border-radius:20px;
-}
-
-.round-progress {
-  font-size:.68rem;
-  color:#4ade80;
-}
-
-.chevron {
-  width:18px; height:18px;
+.tree-center {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:96px;
   flex-shrink:0;
-  transition:transform .25s ease;
-  color:#8a8a9e;
+  padding:0 3px;
 }
-.round.open .chevron { transform:rotate(180deg); }
 
-.round-body {
-  max-height:0;
-  overflow:hidden;
-  transition:max-height .3s ease;
-  padding:0 10px;
+/* ── Mini-card de partido dentro del árbol ── */
+.mini-card {
+  background:#1a1a24;
+  border:1px solid #2e2e3e;
+  border-radius:6px;
+  padding:4px 5px;
 }
-.round.open .round-body { padding:0 10px 10px; }
+.mini-card.done { border-color:#4ade80; }
+
+.mini-row {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 0;
+}
+.mini-row + .mini-row { border-top:1px solid #24242e; }
+
+.mini-flag {
+  width:18px; height:13px;
+  border-radius:2px;
+  object-fit:cover;
+  flex-shrink:0;
+}
+.mini-flag-ph {
+  width:18px; height:13px;
+  border-radius:2px;
+  background:#22222e;
+  border:1px dashed #444;
+  flex-shrink:0;
+}
+
+.mini-abbr {
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.2px;
+  color:#e5a93b;
+  text-transform:uppercase;
+  flex:1;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.mini-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+
+.mini-score {
+  font-size:.6rem;
+  font-weight:800;
+  color:#5c5c6e;
+  min-width:11px;
+  text-align:right;
+  flex-shrink:0;
+}
+.mini-score.live { color:#4ade80; }
 
 /* ── Cards de partido ── */
 .card {
@@ -158,47 +220,64 @@ h1 {
   text-overflow:ellipsis;
 }
 
-.t-row {
+.match-row {
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin:5px 0;
-  font-size:.88rem;
+  justify-content:space-between;
+  gap:4px;
+  margin:10px 0 6px;
 }
 
-.t-info { display:flex; align-items:center; overflow:hidden; flex:1; min-width:0; }
-
-.flag {
-  width:24px; height:18px;
-  border-radius:2px;
-  margin-right:8px;
-  object-fit:cover;
-  flex-shrink:0;
-}
-.flag-ph { width:24px; height:18px; border-radius:2px; margin-right:8px; background:#2a2a35; border:1px dashed #444; flex-shrink:0; }
-
-.t-name {
-  font-weight:500;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+.team-cell {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
   min-width:0;
 }
-.t-name.pending { color:#8a8a9e; font-style:italic; }
 
-.score {
+.team-abbr {
+  font-size:.74rem;
   font-weight:700;
+  letter-spacing:.5px;
   color:#e5a93b;
-  background:#252535;
-  padding:3px 8px;
-  border-radius:4px;
-  min-width:22px;
-  text-align:center;
-  flex-shrink:0;
-  margin-left:6px;
-  font-size:.86rem;
+  text-transform:uppercase;
+  white-space:nowrap;
 }
-.score.live { color:#4ade80; }
+.team-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+
+.team-flag-big {
+  width:42px; height:31px;
+  border-radius:4px;
+  object-fit:cover;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.team-flag-big-ph {
+  width:42px; height:31px;
+  border-radius:4px;
+  background:#22222e;
+  border:1px dashed #444;
+}
+
+.team-score-big {
+  font-size:1.05rem;
+  font-weight:800;
+  color:#5c5c6e;
+  min-width:18px;
+  text-align:center;
+}
+.team-score-big.live { color:#4ade80; }
+
+.vs-divider {
+  font-size:.62rem;
+  color:#52525f;
+  font-weight:700;
+  flex-shrink:0;
+  padding:0 3px;
+  align-self:center;
+  margin-top:18px; /* alinea visualmente con la altura de la bandera */
+}
 
 .card-footer {
   font-size:.66rem;
@@ -215,6 +294,60 @@ h1 {
 
 /* Indicador de carga inicial centrado */
 #bracket { min-height: 100px; }
+
+/* ── Banner de instalación (aparece solo, sin que el usuario lo pida) ── */
+.install-banner {
+  position:fixed;
+  left:12px; right:12px;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  background:linear-gradient(135deg,#2e2413,#1a1a24);
+  border:1px solid #e5a93b;
+  border-radius:12px;
+  padding:12px 12px 12px 14px;
+  display:none;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,.45);
+  z-index:50;
+  animation:installSlideUp .35s ease;
+}
+@keyframes installSlideUp { from{transform:translateY(24px); opacity:0} to{transform:translateY(0); opacity:1} }
+.install-text {
+  flex:1;
+  font-size:.78rem;
+  line-height:1.45;
+  color:#f1f1f4;
+}
+.install-text strong { color:#e5a93b; }
+.share-ico {
+  width:15px; height:15px;
+  vertical-align:-3px;
+  margin:0 1px;
+  fill:#e5a93b;
+}
+.install-btn {
+  background:#e5a93b;
+  color:#1a1a24;
+  font-weight:700;
+  font-size:.78rem;
+  border:none;
+  border-radius:8px;
+  padding:8px 14px;
+  flex-shrink:0;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.install-close {
+  background:transparent;
+  border:none;
+  color:#8a8a9e;
+  font-size:1.05rem;
+  padding:2px 4px;
+  cursor:pointer;
+  flex-shrink:0;
+  line-height:1;
+}
+
 </style>
 </head>
 <body>
@@ -233,6 +366,8 @@ h1 {
 <div id="bracket">
   <div class="loading-msg">Cargando bracket…</div>
 </div>
+
+<div id="installBanner" class="install-banner" role="status"></div>
 
 <script>
 const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
@@ -256,6 +391,67 @@ const FLAGS = {
   'Uzbekistan':'uz','Colombia':'co',
   'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
+
+// ── Traducción de nombres al español (solo para mostrar; las banderas
+// siguen buscándose con el nombre en inglés tal como lo manda la API) ──
+const TEAM_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
+  'Czech Republic':'Chequia','Czechia':'Chequia',
+  'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
+  'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
+  'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
+  'Turkey':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania','Ivory Coast':'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador',
+  'Curaçao':'Curazao','Curacao':'Curazao',
+  'Netherlands':'Holanda','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Cape Verde':'Cabo Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita',
+  'France':'Francia','Norway':'Noruega','Senegal':'Senegal','Iraq':'Irak',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'RD Congo','Democratic Republic of the Congo':'RD Congo',
+  'Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
+};
+
+function translateTeam(name) {
+  return TEAM_ES[name] || name;
+}
+
+// ── Abreviaturas de 3 letras (códigos FIFA, reconocibles internacionalmente) ──
+const ABBR_ES = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
+  'Czech Republic':'CZE','Czechia':'CZE',
+  'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
+  'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
+  'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
+  'Turkey':'TUR','Türkiye':'TUR',
+  'Germany':'GER','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Curaçao':'CUW','Curacao':'CUW',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA',
+  'France':'FRA','Norway':'NOR','Senegal':'SEN','Iraq':'IRQ',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
+  'Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+// Para los cupos sin resolver, abrevia el placeholder en vez de mostrar
+// "?" sin información: G73 (ganador #73), P101 (perdedor #101), 1°A / 2°B
+// (1° o 2° de grupo), 3° (mejor tercero).
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m;
+    m = name.match(/^Gan\. #(\d+)$/); if (m) return `G${m[1]}`;
+    m = name.match(/^Per\. #(\d+)$/); if (m) return `P${m[1]}`;
+    m = name.match(/^1\.° Grupo ([A-L])$/); if (m) return `1°${m[1]}`;
+    m = name.match(/^2\.° Grupo ([A-L])$/); if (m) return `2°${m[1]}`;
+    if (name && name.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
+}
 
 // ── Estadios ─────────────────────────────────────────────
 const STAD = {
@@ -281,11 +477,17 @@ function fmtDate(s) {
 }
 
 // ── Resolver label cuando no hay nombre directo ───────────
-function resolveLabel(g, side) {
+// Primero confiamos en lo que diga la API (home_team_id/name_en). Solo si
+// la API todavía no resolvió ese cruce, intentamos calcularlo nosotros:
+// si el partido que alimenta este cupo ya terminó, sacamos el ganador (o
+// perdedor, para el partido por el 3er puesto) directamente del marcador.
+function resolveLabel(g, side, byId, visited) {
+  visited = visited || new Set();
   const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
   const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
   const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
 
+  // Si hay nombre real y el id no es 0, úsalo (la API ya lo resolvió)
   if (id && id !== '0' && nm) return nm;
 
   if (!lbl) return '–';
@@ -297,10 +499,28 @@ function resolveLabel(g, side) {
   m = lbl.match(/^3rd Group ([A-L/]+)$/);
   if (m) return `Mejor 3.° (${m[1]})`;
   m = lbl.match(/^Winner Match (\d+)$/);
-  if (m) return `Gan. #${m[1]}`;
+  if (m) return resolveAdvancingTeam(m[1], true, byId, visited) || `Gan. #${m[1]}`;
   m = lbl.match(/^Loser Match (\d+)$/);
-  if (m) return `Per. #${m[1]}`;
+  if (m) return resolveAdvancingTeam(m[1], false, byId, visited) || `Per. #${m[1]}`;
   return lbl;
+}
+
+// Calcula, a partir del marcador, qué equipo avanza (ganador) o queda
+// eliminado (perdedor) de un partido ya finalizado. Si ese partido a su vez
+// dependía de otro cruce sin resolver, sigue la cadena hacia atrás.
+function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
+  if (!byId || visited.has(matchId)) return null;
+  visited.add(matchId);
+
+  const g = byId[String(matchId)];
+  if (!g || g.finished !== 'TRUE') return null;
+
+  const hs = parseFloat(g.home_score);
+  const as = parseFloat(g.away_score);
+  if (isNaN(hs) || isNaN(as) || hs === as) return null; // empate sin definir (posibles penales) → no arriesgamos un dato incorrecto
+
+  const homeAdvances = wantWinner ? hs > as : hs < as;
+  return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
 }
 
 function isPending(name) {
@@ -309,53 +529,90 @@ function isPending(name) {
     || name.startsWith('Mejor');
 }
 
-// ── HTML de una fila de equipo ────────────────────────────
-function tRow(name, score, done) {
+// ── HTML de una casilla de equipo (abreviatura arriba, bandera en medio,
+// marcador abajo) ──────────────────────────────────────────
+function teamCell(name, score, done) {
   const pend = isPending(name);
-  const flagCode = FLAGS[name];
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name]; // la bandera se busca con el nombre en inglés (llave original)
+  const displayFull = pend ? name : translateTeam(name); // nombre completo, solo para alt/title
   const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${name}" class="flag"
-            onerror="this.outerHTML='<span class=\\'flag-ph\\'></span>'">`
-    : `<span class="flag-ph"></span>`;
-  const sc = (done && score !== null && score !== undefined && score !== 'null')
-    ? `<span class="score live">${score}</span>`
-    : `<span class="score">–</span>`;
-  return `<div class="t-row">
-    <div class="t-info">
-      ${flagHtml}
-      <span class="t-name ${pend?'pending':''}">${name || '–'}</span>
-    </div>${sc}</div>`;
+    ? `<img src="https://flagcdn.com/40x30/${flagCode}.png" alt="${displayFull}" class="team-flag-big"
+            onerror="this.outerHTML='<span class=\\'team-flag-big-ph\\'></span>'">`
+    : `<span class="team-flag-big-ph"></span>`;
+  const live = (done && score !== null && score !== undefined && score !== 'null');
+  const scoreTxt = live ? score : '–';
+  return `<div class="team-cell" title="${displayFull}">
+    <div class="team-abbr ${pend?'pending':''}">${abbr}</div>
+    ${flagHtml}
+    <div class="team-score-big ${live?'live':''}">${scoreTxt}</div>
+  </div>`;
 }
 
 // ── HTML de una match card ────────────────────────────────
-function mkCard(g) {
+function mkCard(g, byId) {
   if (!g) return '';
   const done = g.finished === 'TRUE';
-  const h = resolveLabel(g,'h');
-  const a = resolveLabel(g,'a');
+  const h = resolveLabel(g,'h', byId);
+  const a = resolveLabel(g,'a', byId);
   const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
   return `<div class="card ${done?'done':''}">
     <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
-    ${tRow(h, g.home_score, done)}
-    ${tRow(a, g.away_score, done)}
+    <div class="match-row">
+      ${teamCell(h, g.home_score, done)}
+      <div class="vs-divider">VS</div>
+      ${teamCell(a, g.away_score, done)}
+    </div>
     <div class="card-footer">${st}</div>
   </div>`;
 }
 
-// ── Orden de rondas (de arriba hacia abajo) ───────────────
-// 1/16 primero (como pediste), luego avanza hacia la final.
-const ROUNDS = [
-  { key:'r32',  title:'1/16 de Final', ids:[73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88], open:true  },
-  { key:'r16',  title:'Octavos',       ids:[89,90,91,92,93,94,95,96],                          open:false },
-  { key:'qf',   title:'Cuartos',       ids:[97,98,99,100],                                     open:false },
-  { key:'sf',   title:'Semifinal',     ids:[101,102],                                          open:false },
-];
+// ── Mapa real del árbol (verificado con el JSON de worldcup26.ir) ────
+// Distribución visual izquierda → centro ← derecha:
+const R32L = [74,77,73,75,83,84,81,82];
+const R16L = [89,90,93,94];
+const QFL  = [97,98];
+const R32R = [76,78,79,80,86,88,85,87];
+const R16R = [91,92,95,96];
+const QFR  = [99,100];
 
-function countDone(ids, byId) {
-  return ids.reduce((acc,id) => {
-    const g = byId[String(id)];
-    return acc + ((g && g.finished === 'TRUE') ? 1 : 0);
-  }, 0);
+// ── Mini-fila de equipo dentro del árbol (bandera + abreviatura + marcador) ──
+function miniRow(name, score, done) {
+  const pend = isPending(name);
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : translateTeam(name);
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/20x15/${flagCode}.png" alt="${displayFull}" class="mini-flag"
+            onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
+    : `<span class="mini-flag-ph"></span>`;
+  const live = (done && score !== null && score !== undefined && score !== 'null');
+  const scoreTxt = live ? score : '–';
+  return `<div class="mini-row" title="${displayFull}">
+    ${flagHtml}
+    <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
+    <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+  </div>`;
+}
+
+// ── Mini-card de partido (los dos equipos apilados) ───────────────────
+function miniCard(g, byId) {
+  if (!g) return '<div class="mini-card" style="opacity:.25">&nbsp;</div>';
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g,'h', byId);
+  const a = resolveLabel(g,'a', byId);
+  return `<div class="mini-card ${done?'done':''}" title="#${g.id}">
+    ${miniRow(h, g.home_score, done)}
+    ${miniRow(a, g.away_score, done)}
+  </div>`;
+}
+
+function treeColumn(title, ids, byId) {
+  const cards = ids.map(id => miniCard(byId[String(id)], byId)).join('');
+  return `<div class="tree-col">
+    <div class="tree-col-title">${title}</div>
+    ${cards}
+  </div>`;
 }
 
 function buildSpotlight(byId) {
@@ -364,68 +621,37 @@ function buildSpotlight(byId) {
   return `
     <div class="spotlight">
       <div class="trophy">🏆</div>
-      <div class="stitle">Gran Final</div>
-      ${final ? mkCard(final) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+      <div class="stitle">Final</div>
+      ${final ? miniCard(final, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
       <div class="third-mini">
-        <div class="stitle">Tercer Puesto</div>
-        ${third ? mkCard(third) : '<div class="loading-msg" style="padding:10px">Por definir</div>'}
+        <div class="stitle">3er Puesto</div>
+        ${third ? miniCard(third, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
       </div>
     </div>`;
 }
 
-function buildRoundsHtml(byId) {
-  return ROUNDS.map(r => {
-    const done = countDone(r.ids, byId);
-    const total = r.ids.length;
-    const cardsHtml = r.ids.map(id => mkCard(byId[String(id)])).join('');
-    return `
-      <div class="round ${r.open ? 'open':''}" data-key="${r.key}">
-        <div class="round-header" onclick="toggleRound(this)">
-          <div class="round-title-wrap">
-            <span class="round-title">${r.title}</span>
-            <span class="round-count">${total} partidos</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            ${done>0 ? `<span class="round-progress">${done}/${total} ✓</span>` : ''}
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="round-body">${cardsHtml}</div>
-      </div>`;
-  }).join('');
-}
-
-function toggleRound(headerEl) {
-  const round = headerEl.closest('.round');
-  const body = round.querySelector('.round-body');
-  const isOpen = round.classList.contains('open');
-  if (isOpen) {
-    round.classList.remove('open');
-    body.style.maxHeight = '0px';
-  } else {
-    round.classList.add('open');
-    body.style.maxHeight = body.scrollHeight + 'px';
-  }
-}
-
-// Reabre correctamente tras cambios de contenido (re-mide alturas abiertas)
-function refreshOpenHeights() {
-  document.querySelectorAll('.round.open .round-body').forEach(body => {
-    body.style.maxHeight = body.scrollHeight + 'px';
-  });
+function buildTree(byId) {
+  return `
+    <div class="tree-wrapper">
+      <div class="tree-grid">
+        ${treeColumn('1/16', R32L, byId)}
+        ${treeColumn('Octavos', R16L, byId)}
+        ${treeColumn('Cuartos', QFL, byId)}
+        ${treeColumn('Semis', [101], byId)}
+        <div class="tree-center">${buildSpotlight(byId)}</div>
+        ${treeColumn('Semis', [102], byId)}
+        ${treeColumn('Cuartos', QFR, byId)}
+        ${treeColumn('Octavos', R16R, byId)}
+        ${treeColumn('1/16', R32R, byId)}
+      </div>
+    </div>`;
 }
 
 function buildBracket(games) {
   const byId = {};
   games.forEach(g => { byId[String(g.id)] = g; });
 
-  const html = buildSpotlight(byId) + buildRoundsHtml(byId);
-  document.getElementById('bracket').innerHTML = html;
-
-  // Setear max-height inicial para la(s) ronda(s) abiertas por defecto
-  requestAnimationFrame(refreshOpenHeights);
+  document.getElementById('bracket').innerHTML = buildTree(byId);
 }
 
 // ── Carga principal ───────────────────────────────────────
@@ -455,11 +681,72 @@ async function load() {
   }
 }
 
-// Recalcula alturas si el usuario rota el teléfono o cambia el tamaño de fuente
-window.addEventListener('resize', refreshOpenHeights);
-
 load();
 setInterval(load, 120000);
+
+// ── Banner de instalación (aparece solo) ──────────────────
+const INSTALL_LS_KEY = 'mundial2026_install_dismissed_v1';
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+function wasDismissed() {
+  try { return localStorage.getItem(INSTALL_LS_KEY) === '1'; }
+  catch(e) { return false; }
+}
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  try { localStorage.setItem(INSTALL_LS_KEY, '1'); } catch(e) {}
+}
+
+const SHARE_ICON = `<svg class="share-ico" viewBox="0 0 24 24"><path d="M12 2l-5 5h3v9h4V7h3l-5-5zM5 13v7a2 2 0 002 2h10a2 2 0 002-2v-7h-2v7H7v-7H5z"/></svg>`;
+
+function showIosBanner() {
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">
+      Instala esta app: toca ${SHARE_ICON} <strong>Compartir</strong> y luego
+      <strong>"Agregar a pantalla de inicio"</strong>.
+    </span>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+}
+
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">Instala esta app para abrirla directo, sin el navegador de fondo.</span>
+    <button class="install-btn" id="installNowBtn">Instalar</button>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+  document.getElementById('installNowBtn').onclick = async () => {
+    el.style.display = 'none';
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    }
+  };
+});
+
+// En iOS no existe evento de instalación automática (restricción de Apple),
+// así que mostramos las instrucciones nosotros mismos, sin que el usuario
+// tenga que buscarlas.
+if (isIos() && !isStandalone() && !wasDismissed()) {
+  setTimeout(showIosBanner, 1500);
+}
 
 // ── Registro del Service Worker (PWA) ─────────────────────
 if ('serviceWorker' in navigator) {
