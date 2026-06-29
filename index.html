@@ -171,47 +171,64 @@ h1 {
   text-overflow:ellipsis;
 }
 
-.t-row {
+.match-row {
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  margin:5px 0;
-  font-size:.88rem;
+  justify-content:space-between;
+  gap:4px;
+  margin:10px 0 6px;
 }
 
-.t-info { display:flex; align-items:center; overflow:hidden; flex:1; min-width:0; }
-
-.flag {
-  width:24px; height:18px;
-  border-radius:2px;
-  margin-right:8px;
-  object-fit:cover;
-  flex-shrink:0;
-}
-.flag-ph { width:24px; height:18px; border-radius:2px; margin-right:8px; background:#2a2a35; border:1px dashed #444; flex-shrink:0; }
-
-.t-name {
-  font-weight:500;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+.team-cell {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
   min-width:0;
 }
-.t-name.pending { color:#8a8a9e; font-style:italic; }
 
-.score {
+.team-abbr {
+  font-size:.74rem;
   font-weight:700;
+  letter-spacing:.5px;
   color:#e5a93b;
-  background:#252535;
-  padding:3px 8px;
-  border-radius:4px;
-  min-width:22px;
-  text-align:center;
-  flex-shrink:0;
-  margin-left:6px;
-  font-size:.86rem;
+  text-transform:uppercase;
+  white-space:nowrap;
 }
-.score.live { color:#4ade80; }
+.team-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+
+.team-flag-big {
+  width:42px; height:31px;
+  border-radius:4px;
+  object-fit:cover;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.team-flag-big-ph {
+  width:42px; height:31px;
+  border-radius:4px;
+  background:#22222e;
+  border:1px dashed #444;
+}
+
+.team-score-big {
+  font-size:1.05rem;
+  font-weight:800;
+  color:#5c5c6e;
+  min-width:18px;
+  text-align:center;
+}
+.team-score-big.live { color:#4ade80; }
+
+.vs-divider {
+  font-size:.62rem;
+  color:#52525f;
+  font-weight:700;
+  flex-shrink:0;
+  padding:0 3px;
+  align-self:center;
+  margin-top:18px; /* alinea visualmente con la altura de la bandera */
+}
 
 .card-footer {
   font-size:.66rem;
@@ -351,6 +368,42 @@ function translateTeam(name) {
   return TEAM_ES[name] || name;
 }
 
+// ── Abreviaturas de 3 letras (códigos FIFA, reconocibles internacionalmente) ──
+const ABBR_ES = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
+  'Czech Republic':'CZE','Czechia':'CZE',
+  'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
+  'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
+  'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
+  'Turkey':'TUR','Türkiye':'TUR',
+  'Germany':'GER','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Curaçao':'CUW','Curacao':'CUW',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA',
+  'France':'FRA','Norway':'NOR','Senegal':'SEN','Iraq':'IRQ',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
+  'Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+// Para los cupos sin resolver, abrevia el placeholder en vez de mostrar
+// "?" sin información: G73 (ganador #73), P101 (perdedor #101), 1°A / 2°B
+// (1° o 2° de grupo), 3° (mejor tercero).
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m;
+    m = name.match(/^Gan\. #(\d+)$/); if (m) return `G${m[1]}`;
+    m = name.match(/^Per\. #(\d+)$/); if (m) return `P${m[1]}`;
+    m = name.match(/^1\.° Grupo ([A-L])$/); if (m) return `1°${m[1]}`;
+    m = name.match(/^2\.° Grupo ([A-L])$/); if (m) return `2°${m[1]}`;
+    if (name && name.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
+}
+
 // ── Estadios ─────────────────────────────────────────────
 const STAD = {
   1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
@@ -427,23 +480,24 @@ function isPending(name) {
     || name.startsWith('Mejor');
 }
 
-// ── HTML de una fila de equipo ────────────────────────────
-function tRow(name, score, done) {
+// ── HTML de una casilla de equipo (abreviatura arriba, bandera en medio,
+// marcador abajo) ──────────────────────────────────────────
+function teamCell(name, score, done) {
   const pend = isPending(name);
+  const abbr = getAbbr(name);
   const flagCode = FLAGS[name]; // la bandera se busca con el nombre en inglés (llave original)
-  const displayName = pend ? name : translateTeam(name); // el texto sí se traduce
+  const displayFull = pend ? name : translateTeam(name); // nombre completo, solo para alt/title
   const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${displayName}" class="flag"
-            onerror="this.outerHTML='<span class=\\'flag-ph\\'></span>'">`
-    : `<span class="flag-ph"></span>`;
-  const sc = (done && score !== null && score !== undefined && score !== 'null')
-    ? `<span class="score live">${score}</span>`
-    : `<span class="score">–</span>`;
-  return `<div class="t-row">
-    <div class="t-info">
-      ${flagHtml}
-      <span class="t-name ${pend?'pending':''}">${displayName || '–'}</span>
-    </div>${sc}</div>`;
+    ? `<img src="https://flagcdn.com/40x30/${flagCode}.png" alt="${displayFull}" class="team-flag-big"
+            onerror="this.outerHTML='<span class=\\'team-flag-big-ph\\'></span>'">`
+    : `<span class="team-flag-big-ph"></span>`;
+  const live = (done && score !== null && score !== undefined && score !== 'null');
+  const scoreTxt = live ? score : '–';
+  return `<div class="team-cell" title="${displayFull}">
+    <div class="team-abbr ${pend?'pending':''}">${abbr}</div>
+    ${flagHtml}
+    <div class="team-score-big ${live?'live':''}">${scoreTxt}</div>
+  </div>`;
 }
 
 // ── HTML de una match card ────────────────────────────────
@@ -455,8 +509,11 @@ function mkCard(g, byId) {
   const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
   return `<div class="card ${done?'done':''}">
     <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
-    ${tRow(h, g.home_score, done)}
-    ${tRow(a, g.away_score, done)}
+    <div class="match-row">
+      ${teamCell(h, g.home_score, done)}
+      <div class="vs-divider">VS</div>
+      ${teamCell(a, g.away_score, done)}
+    </div>
     <div class="card-footer">${st}</div>
   </div>`;
 }
