@@ -326,6 +326,31 @@ const FLAGS = {
   'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
 
+// ── Traducción de nombres al español (solo para mostrar; las banderas
+// siguen buscándose con el nombre en inglés tal como lo manda la API) ──
+const TEAM_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
+  'Czech Republic':'Chequia','Czechia':'Chequia',
+  'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
+  'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
+  'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
+  'Turkey':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania','Ivory Coast':'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador',
+  'Curaçao':'Curazao','Curacao':'Curazao',
+  'Netherlands':'Holanda','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Cape Verde':'Cabo Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita',
+  'France':'Francia','Norway':'Noruega','Senegal':'Senegal','Iraq':'Irak',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'RD Congo','Democratic Republic of the Congo':'RD Congo',
+  'Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
+};
+
+function translateTeam(name) {
+  return TEAM_ES[name] || name;
+}
+
 // ── Estadios ─────────────────────────────────────────────
 const STAD = {
   1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
@@ -405,9 +430,10 @@ function isPending(name) {
 // ── HTML de una fila de equipo ────────────────────────────
 function tRow(name, score, done) {
   const pend = isPending(name);
-  const flagCode = FLAGS[name];
+  const flagCode = FLAGS[name]; // la bandera se busca con el nombre en inglés (llave original)
+  const displayName = pend ? name : translateTeam(name); // el texto sí se traduce
   const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${name}" class="flag"
+    ? `<img src="https://flagcdn.com/24x18/${flagCode}.png" alt="${displayName}" class="flag"
             onerror="this.outerHTML='<span class=\\'flag-ph\\'></span>'">`
     : `<span class="flag-ph"></span>`;
   const sc = (done && score !== null && score !== undefined && score !== 'null')
@@ -416,7 +442,7 @@ function tRow(name, score, done) {
   return `<div class="t-row">
     <div class="t-info">
       ${flagHtml}
-      <span class="t-name ${pend?'pending':''}">${name || '–'}</span>
+      <span class="t-name ${pend?'pending':''}">${displayName || '–'}</span>
     </div>${sc}</div>`;
 }
 
