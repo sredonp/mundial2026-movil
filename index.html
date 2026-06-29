@@ -1,15 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
+<html lang="es"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Fase Final Mundial 2026</title>
+
+<!-- Vista previa al compartir (WhatsApp, Twitter/X, Facebook, Instagram, etc.) -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Fase Final del Mundial 2026">
-<meta property="og:description" content="Bracket en vivo · Horario Colombia (UTC-5)">
+<meta property="og:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia. Instalable como app en tu teléfono.">
 <meta property="og:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:url" content="https://sredonp.github.io/mundial2026-movil/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fase Final del Mundial 2026">
+<meta name="twitter:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia.">
+<meta name="twitter:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
+
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f0f12">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,595 +24,1131 @@
 <meta name="apple-mobile-web-app-title" content="Mundial 2026">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" href="icons/icon-192.png">
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --gold:#e5a93b;--green:#4ade80;--red:#ef4444;--blue:#5c85d6;
-  --bg:#0f0f12;--card:#17171f;--border:#2a2a38;
-  --text:#f1f1f4;--muted:#8a8a9e;--dim:#3a3a50;--line:rgba(229,169,59,0.30);
-}
-body{
-  background:var(--bg);color:var(--text);
-  font-family:'Segoe UI',system-ui,sans-serif;
-  padding:14px 6px calc(env(safe-area-inset-bottom)+24px);
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background-color: #0f0f12;
+  color: #f1f1f4;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 16px 12px calc(env(safe-area-inset-bottom) + 24px);
+  min-height: 100vh;
 }
 
-/* ── Cabecera ── */
-.hdr{text-align:center;margin-bottom:10px}
-.hdr h1{font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#fff;line-height:1.2}
-.hdr .sub{font-size:.65rem;color:var(--muted);margin-top:2px}
-.sbar{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;
-  font-size:.65rem;color:var(--muted);margin-bottom:14px}
-.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-.dot.loading{background:#fbbf24;animation:pulse 1.5s infinite}
-.dot.ok{background:var(--green)}.dot.err{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* ══════════════════════════════════════════
-   ÁRBOL VERTICAL SIMÉTRICO
-
-   Layout por ronda (de arriba hacia abajo):
-   R16:  8 col ─── 8 col   (16 partidos, lado izq | lado der)
-   R8:   4 col ─── 4 col   (8 partidos)
-   QF:   2 col ─── 2 col   (4 partidos)
-   SF:   1 col ─── 1 col   (2 partidos)
-   FINAL:    centro         (1 partido)
-
-   Cada "lado" converge hacia el centro.
-   El lado izquierdo crece de izquierda→centro,
-   el lado derecho crece de derecha→centro.
-══════════════════════════════════════════ */
-
-.bracket{width:100%;position:relative}
-
-/* Etiqueta flotante de ronda */
-.rlbl{
-  text-align:center;font-size:.52rem;font-weight:800;
-  text-transform:uppercase;letter-spacing:1px;color:var(--gold);
-  margin:0 0 4px;position:relative;
-}
-.rlbl::before,.rlbl::after{
-  content:'';position:absolute;top:50%;height:1px;width:30%;
-  background:linear-gradient(to right,transparent,var(--border));
-}
-.rlbl::before{left:0;background:linear-gradient(to right,transparent,var(--border))}
-.rlbl::after{right:0;background:linear-gradient(to left,transparent,var(--border))}
-
-/* Una fila = una ronda. Dos mitades simétricas. */
-.brow{
-  display:flex;
-  gap:var(--gap);
-  align-items:flex-start;
-  margin-bottom:0;
-  padding:0;
+h1 {
+  font-size: 1.35rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+  text-align: center;
 }
 
-/* ── Mini-card ──────────────────────────────────────
-   Layout interno por EQUIPO:
-     [Nombre   ] [gol]
-     [  bandera] [gol]  ← bandera grande centrada dentro
-   Realmente hacemos:
-     fila superior: nombre + score
-     bandera centrada
-   Más compacto que antes.
-─────────────────────────────────────────────────── */
-.mc{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:4px 4px 3px;
-  display:flex;flex-direction:column;
-  align-items:stretch;
-  gap:0;
-  flex-shrink:0;
-  /* width se asigna inline */
-}
-.mc.done{border-color:var(--green)}
-.mc.live-now{border-color:#fbbf24}
-
-/* Equipo: nombre arriba, bandera+gol en fila */
-.mteam{
-  display:flex;flex-direction:column;
-  align-items:center;
-  padding:2px 2px 2px;
-  gap:2px;
-}
-.mteam+.mteam{border-top:1px solid #1e1e2a;margin-top:1px}
-
-.mname{
-  font-size:.54rem;font-weight:700;letter-spacing:.3px;
-  color:var(--gold);text-transform:uppercase;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  width:100%;text-align:center;line-height:1.1;
-}
-.mname.pend{color:var(--dim);font-style:italic;font-weight:500;font-size:.5rem}
-
-/* Fila bandera + gol */
-.mfrow{display:flex;align-items:center;justify-content:center;gap:3px;width:100%}
-.mflag{width:22px;height:16px;border-radius:2px;object-fit:cover;flex-shrink:0}
-.mflag-ph{width:22px;height:16px;border-radius:2px;background:#1e1e2a;border:1px dashed #2e2e40;flex-shrink:0}
-.mscore{
-  font-size:.64rem;font-weight:800;color:var(--dim);
-  min-width:13px;text-align:center;line-height:1;
-}
-.mscore.live{color:var(--green)}
-
-/* fecha debajo */
-.mdate{font-size:.46rem;color:var(--muted);text-align:center;
-  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  line-height:1.15;border-top:1px solid #1a1a26;padding-top:2px}
-
-/* ── SVG conectores ── */
-.conn{display:block;width:100%;overflow:visible;pointer-events:none;flex-shrink:0}
-
-/* ── Spotlight Final ── */
-.spot-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:6px}
-.spotlight{
-  width:100%;max-width:300px;
-  background:linear-gradient(135deg,#211a09,#17171f);
-  border:2px solid var(--gold);border-radius:14px;
-  padding:12px 12px 10px;
-  box-shadow:0 0 24px rgba(229,169,59,.15);
-}
-.trophy{font-size:1.6rem;text-align:center;display:block;margin-bottom:3px;
-  animation:float 3s ease-in-out infinite}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.sp-lbl{text-align:center;font-size:.55rem;font-weight:800;text-transform:uppercase;
-  letter-spacing:1.3px;margin-bottom:8px}
-.sp-lbl.gold{color:var(--gold)}.sp-lbl.blue{color:var(--blue)}
-
-.sp-match{display:flex;align-items:center;justify-content:center;gap:6px}
-.sp-team{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0}
-.sp-nm{font-size:.63rem;font-weight:700;text-transform:uppercase;color:var(--gold);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px;text-align:center}
-.sp-nm.pend{color:var(--dim);font-style:italic}
-.sp-flag{width:42px;height:30px;border-radius:3px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,.4)}
-.sp-flag-ph{width:42px;height:30px;border-radius:3px;background:#1e1e2a;border:1px dashed #35354a}
-.sp-sc{font-size:1.05rem;font-weight:900;color:var(--dim)}.sp-sc.live{color:var(--green)}
-.sp-vs{font-size:.6rem;color:var(--dim);font-weight:700;flex-shrink:0}
-.sp-date{text-align:center;font-size:.53rem;color:var(--muted);margin-top:6px}
-
-.third-box{
-  width:100%;max-width:300px;
-  background:linear-gradient(135deg,#0d1220,#17171f);
-  border:1px solid var(--blue);border-radius:11px;
-  padding:10px 12px 9px;
+.subtitle {
+  color: #a0a0b0;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+  text-align: center;
 }
 
-.loading-msg{color:var(--muted);text-align:center;padding:40px 14px;font-size:.85rem}
-.err-msg{color:var(--red);text-align:center;padding:30px 14px}
+.status-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.74rem;
+  color: #8a8a9e;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
 
-/* ── Install banner ── */
-.install-banner{
-  position:fixed;left:10px;right:10px;
-  bottom:calc(env(safe-area-inset-bottom)+10px);
+.status-item { display:flex; align-items:center; gap:6px; }
+.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.dot.loading { background:#fbbf24; animation:pulse 1.5s infinite; }
+.dot.ok      { background:#4ade80; }
+.dot.err     { background:#ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Trofeo / Final destacada arriba ── */
+.spotlight {
   background:linear-gradient(135deg,#2e2413,#1a1a24);
-  border:1px solid var(--gold);border-radius:12px;
-  padding:11px 11px 11px 13px;display:none;align-items:center;
-  gap:9px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;
-  animation:slideUp .3s ease;
+  border:2px solid #e5a93b;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:20px;
+  box-shadow:0 0 22px rgba(229,169,59,.18);
+  text-align:center;
 }
-@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.install-text{flex:1;font-size:.72rem;line-height:1.4;color:var(--text)}
-.install-text strong{color:var(--gold)}
-.share-ico{width:13px;height:13px;vertical-align:-2px;margin:0 1px;fill:var(--gold)}
-.install-btn{background:var(--gold);color:#1a1a24;font-weight:700;font-size:.72rem;
-  border:none;border-radius:7px;padding:7px 11px;flex-shrink:0;cursor:pointer}
-.install-close{background:transparent;border:none;color:var(--muted);font-size:.95rem;
-  padding:2px 3px;cursor:pointer;flex-shrink:0}
+.spotlight .trophy { font-size:2.2rem; animation:float 3s ease-in-out infinite; margin-bottom:6px; }
+@keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+.spotlight .stitle {
+  font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
+  color:#e5a93b; font-weight:700; margin-bottom:10px;
+}
+.third-mini { margin-top:14px; padding-top:12px; border-top:1px dashed #3a3a4a; }
+.third-mini .stitle { color:#5c85d6; font-size:.66rem; }
+
+/* Ajustes del spotlight cuando vive dentro de la columna central del árbol
+   (ahora usa mini-tarjetas, igual que el resto del árbol → mucho más angosta) */
+.tree-center .spotlight { width:90px; margin-bottom:0; padding:8px 5px; }
+.tree-center .spotlight .trophy { font-size:1.3rem; margin-bottom:3px; }
+.tree-center .spotlight .stitle { font-size:.52rem; margin-bottom:5px; letter-spacing:.2px; }
+.tree-center .third-mini { margin-top:8px; padding-top:7px; }
+
+/* ── Árbol horizontal (scroll lateral mínimo) ──────────────── */
+.tree-wrapper {
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:4px 0 14px;
+}
+
+.tree-grid {
+  display:flex;
+  align-items:stretch;
+  gap:4px;
+  padding:0 2px;
+  width:max-content;
+}
+
+.tree-col {
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:6px;
+  width:70px;
+  flex-shrink:0;
+}
+
+.tree-col-title {
+  font-size:.54rem;
+  text-align:center;
+  text-transform:uppercase;
+  letter-spacing:.2px;
+  color:#e5a93b;
+  font-weight:700;
+  margin-bottom:2px;
+  white-space:nowrap;
+}
+
+.tree-center {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:96px;
+  flex-shrink:0;
+  padding:0 3px;
+}
+
+/* ── Mini-card de partido dentro del árbol ── */
+.mini-card {
+  background:#1a1a24;
+  border:1px solid #2e2e3e;
+  border-radius:6px;
+  padding:4px 5px;
+}
+.mini-card.done { border-color:#4ade80; }
+
+.mini-row {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 0;
+}
+.mini-row + .mini-row { border-top:1px solid #24242e; }
+
+.mini-flag {
+  width:18px; height:13px;
+  border-radius:2px;
+  object-fit:cover;
+  flex-shrink:0;
+}
+.mini-flag-ph {
+  width:18px; height:13px;
+  border-radius:2px;
+  background:#22222e;
+  border:1px dashed #444;
+  flex-shrink:0;
+}
+
+.mini-abbr {
+  font-size:.56rem;
+  font-weight:700;
+  letter-spacing:.2px;
+  color:#e5a93b;
+  text-transform:uppercase;
+  flex:1;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.mini-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+
+.mini-score {
+  font-size:.6rem;
+  font-weight:800;
+  color:#5c5c6e;
+  min-width:11px;
+  text-align:right;
+  flex-shrink:0;
+}
+.mini-score.live { color:#4ade80; }
+
+/* ── Cards de partido ── */
+.card {
+  background:#1a1a24;
+  border:1px solid #2e2e3e;
+  border-radius:8px;
+  padding:10px 11px;
+  margin:7px 0;
+}
+.card.done  { border-color:#4ade80; }
+
+.card-header {
+  font-size:.66rem;
+  color:#8a8a9e;
+  margin-bottom:8px;
+  border-bottom:1px solid #2a2a35;
+  padding-bottom:4px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.match-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:4px;
+  margin:10px 0 6px;
+}
+
+.team-cell {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+.team-abbr {
+  font-size:.74rem;
+  font-weight:700;
+  letter-spacing:.5px;
+  color:#e5a93b;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.team-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+
+.team-flag-big {
+  width:42px; height:31px;
+  border-radius:4px;
+  object-fit:cover;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.team-flag-big-ph {
+  width:42px; height:31px;
+  border-radius:4px;
+  background:#22222e;
+  border:1px dashed #444;
+}
+
+.team-score-big {
+  font-size:1.05rem;
+  font-weight:800;
+  color:#5c5c6e;
+  min-width:18px;
+  text-align:center;
+}
+.team-score-big.live { color:#4ade80; }
+
+.vs-divider {
+  font-size:.62rem;
+  color:#52525f;
+  font-weight:700;
+  flex-shrink:0;
+  padding:0 3px;
+  align-self:center;
+  margin-top:18px; /* alinea visualmente con la altura de la bandera */
+}
+
+.card-footer {
+  font-size:.66rem;
+  color:#6a6a7e;
+  margin-top:6px;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.err-msg { color:#ef4444; text-align:center; padding:30px 14px; }
+.loading-msg { color:#8a8a9e; text-align:center; padding:30px 14px; font-size:.85rem; }
+
+/* Indicador de carga inicial centrado */
+#bracket { min-height: 100px; }
+
+/* ── Banner de instalación (aparece solo, sin que el usuario lo pida) ── */
+.install-banner {
+  position:fixed;
+  left:12px; right:12px;
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  background:linear-gradient(135deg,#2e2413,#1a1a24);
+  border:1px solid #e5a93b;
+  border-radius:12px;
+  padding:12px 12px 12px 14px;
+  display:none;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 10px 26px rgba(0,0,0,.45);
+  z-index:50;
+  animation:installSlideUp .35s ease;
+}
+@keyframes installSlideUp { from{transform:translateY(24px); opacity:0} to{transform:translateY(0); opacity:1} }
+.install-text {
+  flex:1;
+  font-size:.78rem;
+  line-height:1.45;
+  color:#f1f1f4;
+}
+.install-text strong { color:#e5a93b; }
+.share-ico {
+  width:15px; height:15px;
+  vertical-align:-3px;
+  margin:0 1px;
+  fill:#e5a93b;
+}
+.install-btn {
+  background:#e5a93b;
+  color:#1a1a24;
+  font-weight:700;
+  font-size:.78rem;
+  border:none;
+  border-radius:8px;
+  padding:8px 14px;
+  flex-shrink:0;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.install-close {
+  background:transparent;
+  border:none;
+  color:#8a8a9e;
+  font-size:1.05rem;
+  padding:2px 4px;
+  cursor:pointer;
+  flex-shrink:0;
+  line-height:1;
+}
+
 </style>
-</head>
+<style type="text/css"></style></head>
 <body>
 
-<div class="hdr">
-  <h1>Fase Final — Mundial 2026</h1>
-  <div class="sub">Tiempo real · Horario Colombia (UTC-5)</div>
-</div>
-<div class="sbar">
-  <span class="dot loading" id="dot"></span>
-  <span id="st">Cargando…</span>
-  <span id="upd">Última actualización: —</span>
+<h1>Fase Final del Mundial 2026</h1>
+<div class="subtitle">Datos en tiempo real · Horario Colombia (UTC-5)</div>
+
+<div class="status-bar">
+  <div class="status-item">
+    <span class="dot ok" id="dot"></span>
+    <span id="st">104 partidos cargados ✓</span>
+  </div>
+  <div class="status-item"><span id="upd">Última actualización: 18:33h</span></div>
 </div>
 
-<div id="bracket"><div class="loading-msg">Cargando bracket…</div></div>
+<div id="bracket">
+    <div class="tree-wrapper">
+      <div class="tree-grid">
+        <div class="tree-col">
+    <div class="tree-col-title">1/16</div>
+    <div class="mini-card done" title="#74">
+    <div class="mini-row" title="Alemania">
+    <img src="https://flagcdn.com/20x15/de.png" alt="Alemania" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">GER</span>
+    <span class="mini-score live">1</span>
+  </div>
+    <div class="mini-row" title="Paraguay">
+    <img src="https://flagcdn.com/20x15/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">PAR</span>
+    <span class="mini-score live">1</span>
+  </div>
+  </div><div class="mini-card " title="#77">
+    <div class="mini-row" title="Francia">
+    <img src="https://flagcdn.com/20x15/fr.png" alt="Francia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">FRA</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Suecia">
+    <img src="https://flagcdn.com/20x15/se.png" alt="Suecia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">SWE</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card done" title="#73">
+    <div class="mini-row" title="Sudáfrica">
+    <img src="https://flagcdn.com/20x15/za.png" alt="Sudáfrica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">RSA</span>
+    <span class="mini-score live">0</span>
+  </div>
+    <div class="mini-row" title="Canadá">
+    <img src="https://flagcdn.com/20x15/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">CAN</span>
+    <span class="mini-score live">1</span>
+  </div>
+  </div><div class="mini-card " title="#75">
+    <div class="mini-row" title="Holanda">
+    <img src="https://flagcdn.com/20x15/nl.png" alt="Holanda" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">NED</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Marruecos">
+    <img src="https://flagcdn.com/20x15/ma.png" alt="Marruecos" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">MAR</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#83">
+    <div class="mini-row" title="Portugal">
+    <img src="https://flagcdn.com/20x15/pt.png" alt="Portugal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">POR</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Croacia">
+    <img src="https://flagcdn.com/20x15/hr.png" alt="Croacia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">CRO</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#84">
+    <div class="mini-row" title="España">
+    <img src="https://flagcdn.com/20x15/es.png" alt="España" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">ESP</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Austria">
+    <img src="https://flagcdn.com/20x15/at.png" alt="Austria" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">AUT</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#81">
+    <div class="mini-row" title="EE. UU.">
+    <img src="https://flagcdn.com/20x15/us.png" alt="EE. UU." class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">USA</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Bosnia">
+    <img src="https://flagcdn.com/20x15/ba.png" alt="Bosnia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">BIH</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#82">
+    <div class="mini-row" title="Bélgica">
+    <img src="https://flagcdn.com/20x15/be.png" alt="Bélgica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">BEL</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Senegal">
+    <img src="https://flagcdn.com/20x15/sn.png" alt="Senegal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">SEN</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">Octavos</div>
+    <div class="mini-card " title="#89">
+    <div class="mini-row" title="Paraguay">
+    <img src="https://flagcdn.com/20x15/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">PAR</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #77">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G77</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#90">
+    <div class="mini-row" title="Canadá">
+    <img src="https://flagcdn.com/20x15/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">CAN</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #75">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G75</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#93">
+    <div class="mini-row" title="Gan. #83">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G83</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #84">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G84</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#94">
+    <div class="mini-row" title="Gan. #81">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G81</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #82">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G82</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">Cuartos</div>
+    <div class="mini-card " title="#97">
+    <div class="mini-row" title="Gan. #89">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G89</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #90">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G90</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#98">
+    <div class="mini-row" title="Gan. #93">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G93</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #94">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G94</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">Semis</div>
+    <div class="mini-card " title="#101">
+    <div class="mini-row" title="Gan. #97">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G97</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #98">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G98</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-center">
+    <div class="spotlight">
+      <div class="trophy">🏆</div>
+      <div class="stitle">Final</div>
+      <div class="mini-card " title="#104">
+    <div class="mini-row" title="Gan. #101">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G101</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #102">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G102</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+      <div class="third-mini">
+        <div class="stitle">3er Puesto</div>
+        <div class="mini-card " title="#103">
+    <div class="mini-row" title="Per. #101">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">P101</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Per. #102">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">P102</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+      </div>
+    </div></div>
+        <div class="tree-col">
+    <div class="tree-col-title">Semis</div>
+    <div class="mini-card " title="#102">
+    <div class="mini-row" title="Gan. #99">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G99</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #100">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G100</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">Cuartos</div>
+    <div class="mini-card " title="#99">
+    <div class="mini-row" title="Gan. #91">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G91</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #92">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G92</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#100">
+    <div class="mini-row" title="Gan. #95">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G95</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #96">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G96</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">Octavos</div>
+    <div class="mini-card " title="#91">
+    <div class="mini-row" title="Brasil">
+    <img src="https://flagcdn.com/20x15/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">BRA</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #78">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G78</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#92">
+    <div class="mini-row" title="Gan. #79">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G79</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #80">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G80</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#95">
+    <div class="mini-row" title="Gan. #86">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G86</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #88">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G88</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#96">
+    <div class="mini-row" title="Gan. #85">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G85</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Gan. #87">
+    <span class="mini-flag-ph"></span>
+    <span class="mini-abbr pending">G87</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+        <div class="tree-col">
+    <div class="tree-col-title">1/16</div>
+    <div class="mini-card done" title="#76">
+    <div class="mini-row" title="Brasil">
+    <img src="https://flagcdn.com/20x15/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">BRA</span>
+    <span class="mini-score live">2</span>
+  </div>
+    <div class="mini-row" title="Japón">
+    <img src="https://flagcdn.com/20x15/jp.png" alt="Japón" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">JPN</span>
+    <span class="mini-score live">1</span>
+  </div>
+  </div><div class="mini-card " title="#78">
+    <div class="mini-row" title="Costa de Marfil">
+    <img src="https://flagcdn.com/20x15/ci.png" alt="Costa de Marfil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">CIV</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Noruega">
+    <img src="https://flagcdn.com/20x15/no.png" alt="Noruega" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">NOR</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#79">
+    <div class="mini-row" title="México">
+    <img src="https://flagcdn.com/20x15/mx.png" alt="México" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">MEX</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Ecuador">
+    <img src="https://flagcdn.com/20x15/ec.png" alt="Ecuador" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">ECU</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#80">
+    <div class="mini-row" title="Inglaterra">
+    <img src="https://flagcdn.com/20x15/gb-eng.png" alt="Inglaterra" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">ENG</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="RD Congo">
+    <img src="https://flagcdn.com/20x15/cd.png" alt="RD Congo" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">COD</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#86">
+    <div class="mini-row" title="Argentina">
+    <img src="https://flagcdn.com/20x15/ar.png" alt="Argentina" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">ARG</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Cabo Verde">
+    <img src="https://flagcdn.com/20x15/cv.png" alt="Cabo Verde" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">CPV</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#88">
+    <div class="mini-row" title="Australia">
+    <img src="https://flagcdn.com/20x15/au.png" alt="Australia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">AUS</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Egipto">
+    <img src="https://flagcdn.com/20x15/eg.png" alt="Egipto" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">EGY</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#85">
+    <div class="mini-row" title="Suiza">
+    <img src="https://flagcdn.com/20x15/ch.png" alt="Suiza" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">SUI</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Argelia">
+    <img src="https://flagcdn.com/20x15/dz.png" alt="Argelia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">ALG</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div><div class="mini-card " title="#87">
+    <div class="mini-row" title="Colombia">
+    <img src="https://flagcdn.com/20x15/co.png" alt="Colombia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">COL</span>
+    <span class="mini-score ">–</span>
+  </div>
+    <div class="mini-row" title="Ghana">
+    <img src="https://flagcdn.com/20x15/gh.png" alt="Ghana" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-abbr ">GHA</span>
+    <span class="mini-score ">–</span>
+  </div>
+  </div>
+  </div>
+      </div>
+    </div></div>
+
 <div id="installBanner" class="install-banner" role="status"></div>
 
 <script>
-const PROXY="https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
+const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
 
-/* ── Datos estáticos ── */
-const FLAGS={
+// ── Banderas ──────────────────────────────────────────────
+const FLAGS = {
   'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr',
-  'Czech Republic':'cz','Czechia':'cz','Switzerland':'ch','Canada':'ca',
-  'Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa','Brazil':'br',
-  'Morocco':'ma','Scotland':'gb-sct','Haiti':'ht','United States':'us','USA':'us',
-  'Australia':'au','Paraguay':'py','Turkey':'tr','Türkiye':'tr','Germany':'de',
-  'Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec','Curaçao':'cw','Curacao':'cw',
-  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn','Belgium':'be',
-  'Egypt':'eg','Iran':'ir','New Zealand':'nz','Spain':'es','Cape Verde':'cv',
-  'Uruguay':'uy','Saudi Arabia':'sa','France':'fr','Norway':'no','Senegal':'sn',
-  'Iraq':'iq','Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Czech Republic':'cz','Czechia':'cz',
+  'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
+  'Turkey':'tr','Türkiye':'tr',
+  'Germany':'de','Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec',
+  'Curaçao':'cw','Curacao':'cw',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Cape Verde':'cv','Uruguay':'uy','Saudi Arabia':'sa',
+  'France':'fr','Norway':'no','Senegal':'sn','Iraq':'iq',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
   'Portugal':'pt','DR Congo':'cd','Democratic Republic of the Congo':'cd',
-  'Uzbekistan':'uz','Colombia':'co','England':'gb-eng','Croatia':'hr',
-  'Ghana':'gh','Panama':'pa',
+  'Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
-const ABBR={
-  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
-  'Czech Republic':'CZE','Czechia':'CZE','Switzerland':'SUI','Canada':'CAN',
-  'Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT','Brazil':'BRA',
-  'Morocco':'MAR','Scotland':'SCO','Haiti':'HAI','United States':'USA','USA':'USA',
-  'Australia':'AUS','Paraguay':'PAR','Turkey':'TUR','Türkiye':'TUR','Germany':'GER',
-  'Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU','Curaçao':'CUW',
-  'Curacao':'CUW','Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
-  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL','Spain':'ESP',
-  'Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA','France':'FRA',
-  'Norway':'NOR','Senegal':'SEN','Iraq':'IRQ','Argentina':'ARG','Algeria':'ALG',
-  'Austria':'AUT','Jordan':'JOR','Portugal':'POR','DR Congo':'COD',
-  'Democratic Republic of the Congo':'COD','Uzbekistan':'UZB','Colombia':'COL',
-  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
-};
-const TEAM_ES={
-  'Mexico':'México','South Africa':'S.África','South Korea':'Corea S','Korea Republic':'Corea S',
-  'Czech Republic':'Chequia','Czechia':'Chequia','Switzerland':'Suiza','Canada':'Canadá',
-  'Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Brazil':'Brasil',
-  'Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
-  'United States':'EE.UU.','USA':'EE.UU.','Turkey':'Turquía','Türkiye':'Turquía',
-  'Germany':'Alemania','Ivory Coast':'C.Marfil',"Côte d'Ivoire":'C.Marfil',
-  'Ecuador':'Ecuador','Curaçao':'Curazao','Curacao':'Curazao',
+
+// ── Traducción de nombres al español (solo para mostrar; las banderas
+// siguen buscándose con el nombre en inglés tal como lo manda la API) ──
+const TEAM_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
+  'Czech Republic':'Chequia','Czechia':'Chequia',
+  'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
+  'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
+  'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
+  'Turkey':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania','Ivory Coast':'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador',
+  'Curaçao':'Curazao','Curacao':'Curazao',
   'Netherlands':'Holanda','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
-  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'N.Zelanda',
-  'Spain':'España','Cape Verde':'C.Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia S',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Cape Verde':'Cabo Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita',
   'France':'Francia','Norway':'Noruega','Senegal':'Senegal','Iraq':'Irak',
   'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
   'Portugal':'Portugal','DR Congo':'RD Congo','Democratic Republic of the Congo':'RD Congo',
-  'Uzbekistan':'Uzbekistán','Colombia':'Colombia','England':'Inglaterra',
-  'Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá','Australia':'Australia','Paraguay':'Paraguay',
+  'Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
 };
 
-const DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const pad=n=>String(n).padStart(2,'0');
-
-function fmtDate(s){
-  if(!s)return'';
-  const[dp,tp]=s.split(' ');const[mo,dd,yy]=dp.split('/');
-  const d=new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
-  return`${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+function translateTeam(name) {
+  return TEAM_ES[name] || name;
 }
 
-function isPending(n){
-  return!n||n.startsWith('Gan.')||n.startsWith('Per.')
-    ||n.startsWith('1.°')||n.startsWith('2.°')||n.startsWith('Mejor');
+// ── Abreviaturas de 3 letras (códigos FIFA, reconocibles internacionalmente) ──
+const ABBR_ES = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
+  'Czech Republic':'CZE','Czechia':'CZE',
+  'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
+  'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
+  'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
+  'Turkey':'TUR','Türkiye':'TUR',
+  'Germany':'GER','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Curaçao':'CUW','Curacao':'CUW',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA',
+  'France':'FRA','Norway':'NOR','Senegal':'SEN','Iraq':'IRQ',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
+  'Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+// Para los cupos sin resolver, abrevia el placeholder en vez de mostrar
+// "?" sin información: G73 (ganador #73), P101 (perdedor #101), 1°A / 2°B
+// (1° o 2° de grupo), 3° (mejor tercero).
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m;
+    m = name.match(/^Gan\. #(\d+)$/); if (m) return `G${m[1]}`;
+    m = name.match(/^Per\. #(\d+)$/); if (m) return `P${m[1]}`;
+    m = name.match(/^1\.° Grupo ([A-L])$/); if (m) return `1°${m[1]}`;
+    m = name.match(/^2\.° Grupo ([A-L])$/); if (m) return `2°${m[1]}`;
+    if (name && name.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
 }
-function resolveLabel(g,side,byId,visited){
-  visited=visited||new Set();
-  const id=side==='h'?g.home_team_id:g.away_team_id;
-  const nm=side==='h'?g.home_team_name_en:g.away_team_name_en;
-  const lbl=side==='h'?g.home_team_label:g.away_team_label;
-  if(id&&id!=='0'&&nm)return nm;
-  if(!lbl)return'–';
+
+// ── Estadios ─────────────────────────────────────────────
+const STAD = {
+  1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
+  5:'Hard Rock (Miami)',6:'MetLife (NY/NJ)',7:'Arrowhead (KC)',
+  8:'Lincoln Financial (Philly)',9:'Lumen Field (Seattle)',
+  10:'Gillette (Boston)',11:'Empower (Denver)',12:'Azteca (CDMX)',
+  13:'BC Place (Vancouver)',14:'Mercedes-Benz (Atlanta)',
+  15:'NRG (Houston)',16:'Q2 (Austin)',
+};
+
+// ── Fecha a Colombia UTC-5 ────────────────────────────────
+const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const pad   = n => String(n).padStart(2,'0');
+
+function fmtDate(s) {
+  if (!s) return '';
+  const [dp, tp] = s.split(' ');
+  const [mo,dd,yy] = dp.split('/');
+  const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
+  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+}
+
+// ── Resolver label cuando no hay nombre directo ───────────
+// Primero confiamos en lo que diga la API (home_team_id/name_en). Solo si
+// la API todavía no resolvió ese cruce, intentamos calcularlo nosotros:
+// si el partido que alimenta este cupo ya terminó, sacamos el ganador (o
+// perdedor, para el partido por el 3er puesto) directamente del marcador.
+function resolveLabel(g, side, byId, visited) {
+  visited = visited || new Set();
+  const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
+  const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
+
+  // Si hay nombre real y el id no es 0, úsalo (la API ya lo resolvió)
+  if (id && id !== '0' && nm) return nm;
+
+  if (!lbl) return '–';
   let m;
-  m=lbl.match(/^Winner Group ([A-L])$/);   if(m)return`1.° Grupo ${m[1]}`;
-  m=lbl.match(/^Runner-up Group ([A-L])$/);if(m)return`2.° Grupo ${m[1]}`;
-  m=lbl.match(/^3rd Group ([A-L/]+)$/);    if(m)return`Mejor 3.° (${m[1]})`;
-  m=lbl.match(/^Winner Match (\d+)$/);
-  if(m)return resolveAdv(m[1],true,byId,visited)||`Gan. #${m[1]}`;
-  m=lbl.match(/^Loser Match (\d+)$/);
-  if(m)return resolveAdv(m[1],false,byId,visited)||`Per. #${m[1]}`;
+  m = lbl.match(/^Winner Group ([A-L])$/);
+  if (m) return `1.° Grupo ${m[1]}`;
+  m = lbl.match(/^Runner-up Group ([A-L])$/);
+  if (m) return `2.° Grupo ${m[1]}`;
+  m = lbl.match(/^3rd Group ([A-L/]+)$/);
+  if (m) return `Mejor 3.° (${m[1]})`;
+  m = lbl.match(/^Winner Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], true, byId, visited) || `Gan. #${m[1]}`;
+  m = lbl.match(/^Loser Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], false, byId, visited) || `Per. #${m[1]}`;
   return lbl;
 }
-function resolveAdv(mid,want,byId,visited){
-  if(!byId||visited.has(mid))return null;visited.add(mid);
-  const g=byId[String(mid)];if(!g||g.finished!=='TRUE')return null;
-  const hs=parseFloat(g.home_score),as=parseFloat(g.away_score);
-  if(isNaN(hs)||isNaN(as)||hs===as)return null;
-  return resolveLabel(g,(want?hs>as:hs<as)?'h':'a',byId,visited);
-}
-function shortName(raw){
-  if(!raw||raw==='–')return'?';
-  if(isPending(raw)){
-    let m;
-    m=raw.match(/^Gan\. #(\d+)$/);if(m)return`G${m[1]}`;
-    m=raw.match(/^Per\. #(\d+)$/);if(m)return`P${m[1]}`;
-    m=raw.match(/^1\.° Grupo ([A-L])$/);if(m)return`1°${m[1]}`;
-    m=raw.match(/^2\.° Grupo ([A-L])$/);if(m)return`2°${m[1]}`;
-    if(raw.startsWith('Mejor'))return'3°';return'?';
-  }
-  return ABBR[raw]||(TEAM_ES[raw]||raw).slice(0,6);
-}
-function flagEl(name,cls,w,h){
-  const code=FLAGS[name];
-  if(!code||isPending(name))return`<span class="${cls}-ph"></span>`;
-  return`<img src="https://flagcdn.com/${w}x${h}/${code}.png" alt="${name}" class="${cls}"
-    onerror="this.outerHTML='<span class=\\'${cls}-ph\\'></span>'">`;
+
+// Calcula, a partir del marcador, qué equipo avanza (ganador) o queda
+// eliminado (perdedor) de un partido ya finalizado. Si ese partido a su vez
+// dependía de otro cruce sin resolver, sigue la cadena hacia atrás.
+function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
+  if (!byId || visited.has(matchId)) return null;
+  visited.add(matchId);
+
+  const g = byId[String(matchId)];
+  if (!g || g.finished !== 'TRUE') return null;
+
+  const hs = parseFloat(g.home_score);
+  const as = parseFloat(g.away_score);
+  if (isNaN(hs) || isNaN(as) || hs === as) return null; // empate sin definir (posibles penales) → no arriesgamos un dato incorrecto
+
+  const homeAdvances = wantWinner ? hs > as : hs < as;
+  return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
 }
 
-/* ─────────────────────────────────────────────────────────
-   mkMini: mini-tarjeta vertical
-   Nombre arriba, [bandera + gol] al medio, fecha abajo
-───────────────────────────────────────────────────────── */
-function mkMini(g,byId,w){
-  if(!g)return`<div class="mc" style="width:${w}px;min-height:60px;opacity:.15"></div>`;
-  const done=g.finished==='TRUE';
-  const h=resolveLabel(g,'h',byId),a=resolveLabel(g,'a',byId);
-  const hp=isPending(h),ap=isPending(a);
-  const hsc=(done&&g.home_score!=null&&g.home_score!='null')?g.home_score:'–';
-  const asc=(done&&g.away_score!=null&&g.away_score!='null')?g.away_score:'–';
-  const hFull=hp?h:(TEAM_ES[h]||h);const aFull=ap?a:(TEAM_ES[a]||a);
-  return`<div class="mc ${done?'done':''}" style="width:${w}px" title="#${g.id}">
-    <div class="mteam">
-      <div class="mname ${hp?'pend':''}">${shortName(h)}</div>
-      <div class="mfrow" title="${hFull}">
-        ${flagEl(h,'mflag',22,16)}
-        <span class="mscore ${done?'live':''}">${hsc}</span>
-      </div>
-    </div>
-    <div class="mteam">
-      <div class="mname ${ap?'pend':''}">${shortName(a)}</div>
-      <div class="mfrow" title="${aFull}">
-        ${flagEl(a,'mflag',22,16)}
-        <span class="mscore ${done?'live':''}">${asc}</span>
-      </div>
-    </div>
-    <div class="mdate">${fmtDate(g.local_date)}</div>
+function isPending(name) {
+  return !name || name.startsWith('Gan.') || name.startsWith('Per.')
+    || name.startsWith('1.°') || name.startsWith('2.°')
+    || name.startsWith('Mejor');
+}
+
+// ── HTML de una casilla de equipo (abreviatura arriba, bandera en medio,
+// marcador abajo) ──────────────────────────────────────────
+function teamCell(name, score, done) {
+  const pend = isPending(name);
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name]; // la bandera se busca con el nombre en inglés (llave original)
+  const displayFull = pend ? name : translateTeam(name); // nombre completo, solo para alt/title
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/40x30/${flagCode}.png" alt="${displayFull}" class="team-flag-big"
+            onerror="this.outerHTML='<span class=\\'team-flag-big-ph\\'></span>'">`
+    : `<span class="team-flag-big-ph"></span>`;
+  const live = (done && score !== null && score !== undefined && score !== 'null');
+  const scoreTxt = live ? score : '–';
+  return `<div class="team-cell" title="${displayFull}">
+    <div class="team-abbr ${pend?'pending':''}">${abbr}</div>
+    ${flagHtml}
+    <div class="team-score-big ${live?'live':''}">${scoreTxt}</div>
   </div>`;
 }
 
-/* Spotlight Final / 3er Puesto */
-function spMatch(g,byId){
-  if(!g)return`<div style="color:var(--muted);font-size:.62rem;text-align:center;padding:8px">Por definir</div>`;
-  const done=g.finished==='TRUE';
-  const h=resolveLabel(g,'h',byId),a=resolveLabel(g,'a',byId);
-  const hp=isPending(h),ap=isPending(a);
-  const hsc=(done&&g.home_score!=null&&g.home_score!='null')?g.home_score:'–';
-  const asc=(done&&g.away_score!=null&&g.away_score!='null')?g.away_score:'–';
-  return`<div>
-    <div class="sp-match">
-      <div class="sp-team" title="${hp?h:(TEAM_ES[h]||h)}">
-        <div class="sp-nm ${hp?'pend':''}">${shortName(h)}</div>
-        ${flagEl(h,'sp-flag',42,30)}
-        <div class="sp-sc ${done?'live':''}">${hsc}</div>
-      </div>
-      <div class="sp-vs">VS</div>
-      <div class="sp-team" title="${ap?a:(TEAM_ES[a]||a)}">
-        <div class="sp-nm ${ap?'pend':''}">${shortName(a)}</div>
-        ${flagEl(a,'sp-flag',42,30)}
-        <div class="sp-sc ${done?'live':''}">${asc}</div>
-      </div>
+// ── HTML de una match card ────────────────────────────────
+function mkCard(g, byId) {
+  if (!g) return '';
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g,'h', byId);
+  const a = resolveLabel(g,'a', byId);
+  const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
+  return `<div class="card ${done?'done':''}">
+    <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
+    <div class="match-row">
+      ${teamCell(h, g.home_score, done)}
+      <div class="vs-divider">VS</div>
+      ${teamCell(a, g.away_score, done)}
     </div>
-    <div class="sp-date">${fmtDate(g.local_date)}</div>
+    <div class="card-footer">${st}</div>
   </div>`;
 }
 
-/*
-  ═══════════════════════════════════════════════════════════
-  ESTRUCTURA DEL BRACKET SIMÉTRICO VERTICAL
+// ── Mapa real del árbol (verificado con el JSON de worldcup26.ir) ────
+// Distribución visual izquierda → centro ← derecha:
+const R32L = [74,77,73,75,83,84,81,82];
+const R16L = [89,90,93,94];
+const QFL  = [97,98];
+const R32R = [76,78,79,80,86,88,85,87];
+const R16R = [91,92,95,96];
+const QFR  = [99,100];
 
-  El árbol original (horizontal) tenía:
-    Lado IZQUIERDO (L): R16ids[0..7]  → R8ids[0..3] → QFids[0..1] → SF[0]
-    Lado DERECHO   (R): R16ids[8..15] → R8ids[4..7] → QFids[2..3] → SF[1]
-    Ambos lados convergen en la FINAL (104).
+// ── Mini-fila de equipo dentro del árbol (bandera + abreviatura + marcador) ──
+function miniRow(name, score, done) {
+  const pend = isPending(name);
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : translateTeam(name);
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/20x15/${flagCode}.png" alt="${displayFull}" class="mini-flag"
+            onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
+    : `<span class="mini-flag-ph"></span>`;
+  const live = (done && score !== null && score !== undefined && score !== 'null');
+  const scoreTxt = live ? score : '–';
+  return `<div class="mini-row" title="${displayFull}">
+    ${flagHtml}
+    <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
+    <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+  </div>`;
+}
 
-  En la versión VERTICAL, rotamos 90°:
-    - Cada ronda es una FILA horizontal
-    - La mitad izquierda del bracket original se convierte en
-      la mitad SUPERIOR de cada fila (columnas izquierdas)
-    - La mitad derecha → columnas derechas
-    - Las tarjetas se centran hacia el medio en cada ronda
-    - Los conectores SVG "en V" unen pares padre→hijo
+// ── Mini-card de partido (los dos equipos apilados) ───────────────────
+function miniCard(g, byId) {
+  if (!g) return '<div class="mini-card" style="opacity:.25">&nbsp;</div>';
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g,'h', byId);
+  const a = resolveLabel(g,'a', byId);
+  return `<div class="mini-card ${done?'done':''}" title="#${g.id}">
+    ${miniRow(h, g.home_score, done)}
+    ${miniRow(a, g.away_score, done)}
+  </div>`;
+}
 
-  IDs exactos del árbol verificado:
-  ═══════════════════════════════════════════════════════════
-*/
+function treeColumn(title, ids, byId) {
+  const cards = ids.map(id => miniCard(byId[String(id)], byId)).join('');
+  return `<div class="tree-col">
+    <div class="tree-col-title">${title}</div>
+    ${cards}
+  </div>`;
+}
 
-// Lado izquierdo original (→ columnas izquierdas, de exterior a interior)
-const L_R16 = [74, 77, 73, 75, 83, 84, 81, 82]; // 8 partidos
-const L_R8  = [89, 90, 93, 94];                  // 4 partidos
-const L_QF  = [97, 98];                          // 2 partidos
-const L_SF  = [101];                             // 1 partido
-
-// Lado derecho original (→ columnas derechas, de interior a exterior)
-const R_SF  = [102];
-const R_QF  = [99, 100];
-const R_R8  = [91, 92, 95, 96];
-const R_R16 = [76, 78, 79, 80, 86, 88, 85, 87];
-
-function buildBracket(games){
-  const byId={};games.forEach(g=>{byId[String(g.id)]=g;});
-
-  // Ancho total disponible
-  const vw=Math.min(window.innerWidth,520);
-  const W=vw-12; // padding cuerpo 6px×2
-  const GAP=3;
-
-  // Para cada ronda, hay (n_izq + n_der) tarjetas en la fila
-  // R16: 8+8=16  → cw=(W-15*GAP)/16
-  // R8:  4+4=8   → cw=(W-7*GAP)/8
-  // QF:  2+2=4   → cw=(W-3*GAP)/4
-  // SF:  1+1=2   → cw=(W-1*GAP)/2
-  const cw={
-    r16: Math.floor((W-15*GAP)/16),
-    r8:  Math.floor((W-7*GAP)/8),
-    qf:  Math.floor((W-3*GAP)/4),
-    sf:  Math.floor((W-GAP)/2),
-  };
-
-  // SVG de conectores entre ronda A (n tarjetas por lado) y ronda B (n/2 por lado)
-  // Cada par de tarjetas adyacentes del mismo lado converge en una tarjeta hija
-  // centrada entre ambas.
-  function connSVG(nPerSide, cwParent, cwChild, h){
-    // Fila padre: [L side: nPerSide cards] [R side: nPerSide cards]
-    // Fila hijo:  [L side: nPerSide/2 cards] [R side: nPerSide/2 cards]
-    // Total width padre = nPerSide*2*cwParent + (nPerSide*2-1)*GAP
-    const totalCols = nPerSide*2;
-    const totalW = totalCols*cwParent + (totalCols-1)*GAP;
-    const childTotalW = (nPerSide)*cwChild + (nPerSide-1)*GAP; // cada lado
-    // Offset para centrar el hijo respecto al padre
-    // El padre tiene ancho totalW, el hijo tiene 2*childTotalW + GAP
-    const childFullW = 2*cwChild*(nPerSide/2)*2; // approx — calculamos por posición
-
-    const lines=[];
-    // Para cada par padre (i, i+1) → hijo i//2
-    // Los pares izquierdos: índices 0..nPerSide-1, pares de 2
-    // Los pares derechos: índices nPerSide..totalCols-1, pares de 2
-
-    // Posición X del centro de la tarjeta en el índice col (0-based)
-    const cx=col=>col*(cwParent+GAP)+cwParent/2;
-
-    // Hijo: mismo layout pero con cwChild
-    // Lado izquierdo hijo: cols 0..nPerSide/2-1
-    // Lado derecho hijo:   cols nPerSide/2..nPerSide-1
-    // pero el hijo tiene totalCols/2 tarjetas total
-    // En el SVG del hijo, vamos a calcular su centro relativo al padre
-    // El hijo está centrado → su offset desde el borde izquierdo del padre:
-    const childCols=nPerSide; // total columnas en la fila hija
-    const childTW=childCols*cwChild+(childCols-1)*GAP;
-    const childOffsetX=(totalW-childTW)/2;
-    const cxChild=col=>childOffsetX+col*(cwChild+GAP)+cwChild/2;
-
-    // Conectar cada par del lado izquierdo
-    for(let i=0;i<nPerSide;i+=2){
-      const x1=cx(i), x2=cx(i+1);
-      const xm=cxChild(i/2);
-      lines.push(`<path d="M${x1} 0 C${x1} ${h*.6},${xm} ${h*.4},${xm} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>`);
-      lines.push(`<path d="M${x2} 0 C${x2} ${h*.6},${xm} ${h*.4},${xm} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>`);
-    }
-    // Conectar cada par del lado derecho
-    for(let i=0;i<nPerSide;i+=2){
-      const col=nPerSide+i;
-      const x1=cx(col), x2=cx(col+1);
-      const xm=cxChild(nPerSide/2+i/2);
-      lines.push(`<path d="M${x1} 0 C${x1} ${h*.6},${xm} ${h*.4},${xm} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>`);
-      lines.push(`<path d="M${x2} 0 C${x2} ${h*.6},${xm} ${h*.4},${xm} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>`);
-    }
-
-    return`<svg class="conn" height="${h}" width="${totalW}" viewBox="0 0 ${totalW} ${h}"
-      style="display:block;margin:0 auto">${lines.join('')}</svg>`;
-  }
-
-  // Conector SF → Final (2 tarjetas → 1 spotlight en el centro)
-  function connSF2Final(cwSF, h){
-    const totalW=2*cwSF+GAP;
-    const xL=cwSF/2, xR=cwSF+GAP+cwSF/2, xM=totalW/2;
-    return`<svg class="conn" height="${h}" width="${totalW}" viewBox="0 0 ${totalW} ${h}"
-      style="display:block;margin:0 auto">
-      <path d="M${xL} 0 C${xL} ${h*.6},${xM} ${h*.4},${xM} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>
-      <path d="M${xR} 0 C${xR} ${h*.6},${xM} ${h*.4},${xM} ${h}" stroke="var(--line)" stroke-width="1.2" fill="none"/>
-    </svg>`;
-  }
-
-  // Construir una fila de partidos combinando lado izq + der
-  function buildRow(leftIds, rightIds, cw){
-    const allIds=[...leftIds,...rightIds];
-    return`<div class="brow" style="gap:${GAP}px;justify-content:center">
-      ${allIds.map(id=>mkMini(byId[String(id)],byId,cw)).join('')}
-    </div>`;
-  }
-
-  let html='';
-
-  // ── 1/16 ──
-  html+=`<div class="rlbl">1/16 · Dieciseisavos</div>`;
-  html+=buildRow(L_R16, R_R16, cw.r16);
-  html+=connSVG(8, cw.r16, cw.r8, 18);
-
-  // ── Octavos ──
-  html+=`<div class="rlbl">Octavos de Final</div>`;
-  html+=buildRow(L_R8, R_R8, cw.r8);
-  html+=connSVG(4, cw.r8, cw.qf, 18);
-
-  // ── Cuartos ──
-  html+=`<div class="rlbl">Cuartos de Final</div>`;
-  html+=buildRow(L_QF, R_QF, cw.qf);
-  html+=connSVG(2, cw.qf, cw.sf, 18);
-
-  // ── Semis ──
-  html+=`<div class="rlbl">Semifinales</div>`;
-  html+=buildRow(L_SF, R_SF, cw.sf);
-  html+=connSF2Final(cw.sf, 20);
-
-  // ── Final + 3er Puesto ──
-  html+=`<div class="rlbl">🏆 Gran Final</div>`;
-  html+=`<div class="spot-wrap">
+function buildSpotlight(byId) {
+  const final = byId['104'];
+  const third = byId['103'];
+  return `
     <div class="spotlight">
-      <span class="trophy">🏆</span>
-      <div class="sp-lbl gold">Final · 19 Jul 2026</div>
-      ${spMatch(byId['104'],byId)}
-    </div>
-    <div class="third-box">
-      <div class="sp-lbl blue">3.er Puesto · 18 Jul 2026</div>
-      ${spMatch(byId['103'],byId)}
-    </div>
-  </div>`;
-
-  document.getElementById('bracket').innerHTML=html;
+      <div class="trophy">🏆</div>
+      <div class="stitle">Final</div>
+      ${final ? miniCard(final, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
+      <div class="third-mini">
+        <div class="stitle">3er Puesto</div>
+        ${third ? miniCard(third, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
+      </div>
+    </div>`;
 }
 
-/* ── Carga ── */
-async function load(){
-  document.getElementById('dot').className='dot loading';
-  document.getElementById('st').textContent='Actualizando…';
-  try{
-    const res=await fetch(`${PROXY}?proxy=games`);
-    if(!res.ok)throw new Error(`HTTP ${res.status}`);
-    const data=await res.json();
-    const games=Array.isArray(data)?data:(data.games||[]);
-    if(!games.length)throw new Error('Sin partidos');
+function buildTree(byId) {
+  return `
+    <div class="tree-wrapper">
+      <div class="tree-grid">
+        ${treeColumn('1/16', R32L, byId)}
+        ${treeColumn('Octavos', R16L, byId)}
+        ${treeColumn('Cuartos', QFL, byId)}
+        ${treeColumn('Semis', [101], byId)}
+        <div class="tree-center">${buildSpotlight(byId)}</div>
+        ${treeColumn('Semis', [102], byId)}
+        ${treeColumn('Cuartos', QFR, byId)}
+        ${treeColumn('Octavos', R16R, byId)}
+        ${treeColumn('1/16', R32R, byId)}
+      </div>
+    </div>`;
+}
+
+function buildBracket(games) {
+  const byId = {};
+  games.forEach(g => { byId[String(g.id)] = g; });
+
+  document.getElementById('bracket').innerHTML = buildTree(byId);
+}
+
+// ── Carga principal ───────────────────────────────────────
+async function load() {
+  document.getElementById('dot').className = 'dot loading';
+  document.getElementById('st').textContent = 'Actualizando…';
+  try {
+    const res  = await fetch(`${PROXY}?proxy=games`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const games = Array.isArray(data) ? data : (data.games || []);
+    if (!games.length) throw new Error('Sin partidos en la respuesta');
+
     buildBracket(games);
-    document.getElementById('dot').className='dot ok';
-    document.getElementById('st').textContent=`${games.length} partidos ✓`;
-    const now=new Date();
-    document.getElementById('upd').textContent=
-      `Actualizado: ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
-  }catch(e){
+    document.getElementById('dot').className = 'dot ok';
+    document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
+
+    const now = new Date();
+    document.getElementById('upd').textContent =
+      `Última actualización: ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+  } catch(e) {
     console.error(e);
-    document.getElementById('bracket').innerHTML=`<div class="err-msg">❌ ${e.message}</div>`;
-    document.getElementById('dot').className='dot err';
-    document.getElementById('st').textContent='Error';
+    document.getElementById('bracket').innerHTML =
+      `<div class="err-msg">❌ ${e.message}<br><small>Verifica que el Apps Script tenga ?proxy=games activo.</small></div>`;
+    document.getElementById('dot').className = 'dot err';
+    document.getElementById('st').textContent = 'Error al cargar';
   }
 }
+
 load();
-setInterval(load,120000);
+setInterval(load, 120000);
 
-let resizeT;
-window.addEventListener('resize',()=>{clearTimeout(resizeT);resizeT=setTimeout(load,200);});
+// ── Banner de instalación (aparece solo) ──────────────────
+const INSTALL_LS_KEY = 'mundial2026_install_dismissed_v1';
 
-/* ── Banner instalación ── */
-const IK='mundial2026_install_v1';
-const isIos=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStand=()=>window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-const wasDism=()=>{try{return localStorage.getItem(IK)==='1'}catch{return false}};
-function dismissB(){
-  document.getElementById('installBanner').style.display='none';
-  try{localStorage.setItem(IK,'1')}catch{}
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
-const SICO=`<svg class="share-ico" viewBox="0 0 24 24"><path d="M12 2l-5 5h3v9h4V7h3l-5-5zM5 13v7a2 2 0 002 2h10a2 2 0 002-2v-7h-2v7H7v-7H5z"/></svg>`;
-function showIosBanner(){
-  if(isStand()||wasDism())return;
-  const el=document.getElementById('installBanner');
-  el.innerHTML=`<span class="install-text">Instala: toca ${SICO} <strong>Compartir</strong> → <strong>"Agregar a inicio"</strong></span>
-    <button class="install-close" id="iC">✕</button>`;
-  el.style.display='flex';
-  document.getElementById('iC').onclick=dismissB;
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
 }
-let dp=null;
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();dp=e;
-  if(isStand()||wasDism())return;
-  const el=document.getElementById('installBanner');
-  el.innerHTML=`<span class="install-text">Instala para abrirla sin el navegador.</span>
-    <button class="install-btn" id="iN">Instalar</button>
-    <button class="install-close" id="iC">✕</button>`;
-  el.style.display='flex';
-  document.getElementById('iC').onclick=dismissB;
-  document.getElementById('iN').onclick=async()=>{
-    el.style.display='none';
-    if(dp){dp.prompt();await dp.userChoice;dp=null;}
+function wasDismissed() {
+  try { return localStorage.getItem(INSTALL_LS_KEY) === '1'; }
+  catch(e) { return false; }
+}
+function dismissBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  try { localStorage.setItem(INSTALL_LS_KEY, '1'); } catch(e) {}
+}
+
+const SHARE_ICON = `<svg class="share-ico" viewBox="0 0 24 24"><path d="M12 2l-5 5h3v9h4V7h3l-5-5zM5 13v7a2 2 0 002 2h10a2 2 0 002-2v-7h-2v7H7v-7H5z"/></svg>`;
+
+function showIosBanner() {
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">
+      Instala esta app: toca ${SHARE_ICON} <strong>Compartir</strong> y luego
+      <strong>"Agregar a pantalla de inicio"</strong>.
+    </span>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+}
+
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (isStandalone() || wasDismissed()) return;
+  const el = document.getElementById('installBanner');
+  el.innerHTML = `
+    <span class="install-text">Instala esta app para abrirla directo, sin el navegador de fondo.</span>
+    <button class="install-btn" id="installNowBtn">Instalar</button>
+    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
+  el.style.display = 'flex';
+  document.getElementById('installCloseBtn').onclick = dismissBanner;
+  document.getElementById('installNowBtn').onclick = async () => {
+    el.style.display = 'none';
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+    }
   };
 });
-if(isIos()&&!isStand()&&!wasDism())setTimeout(showIosBanner,1500);
-if('serviceWorker' in navigator)
-  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+
+// En iOS no existe evento de instalación automática (restricción de Apple),
+// así que mostramos las instrucciones nosotros mismos, sin que el usuario
+// tenga que buscarlas.
+if (isIos() && !isStandalone() && !wasDismissed()) {
+  setTimeout(showIosBanner, 1500);
+}
+
+// ── Registro del Service Worker (PWA) ─────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW error:', err));
+  });
+}
 </script>
-</body>
-</html>
+
+
+</body></html>
