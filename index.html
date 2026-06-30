@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fase Final Mundial 2026</title>
+
+  <!-- PWA: manifest, íconos y color de tema -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f12">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mundial 2026">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -453,6 +462,76 @@
         margin-bottom: 8px;
       }
     }
+    /* ===== CARTEL DE INSTALACIÓN (PWA) ===== */
+    .install-banner {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 999;
+      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
+      border: 2px solid #ffd700;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(120%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .install-banner .install-icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+    }
+
+    .install-banner .install-text {
+      flex: 1;
+      font-size: 0.8rem;
+      line-height: 1.3;
+      color: #fff;
+    }
+
+    .install-banner .install-text b {
+      color: #ffd700;
+    }
+
+    .install-banner .install-btn {
+      flex-shrink: 0;
+      background: #ffd700;
+      color: #0a0e27;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .install-banner .install-close {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+
+    @media (max-width: 480px) {
+      .install-banner {
+        flex-wrap: wrap;
+      }
+      .install-banner .install-text {
+        font-size: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -461,6 +540,8 @@
   <h1>⚽ MUNDIAL 2026</h1>
   <div class="subtitle">Fase Final · Datos en tiempo real · Colombia (UTC-5)</div>
 </div>
+
+<div id="install-banner" class="install-banner" style="display:none;"></div>
 
 <div class="status-bar">
   <span class="dot ok" id="dot"></span>
@@ -742,6 +823,79 @@ async function load() {
 
 load();
 setInterval(load, 120000);
+
+// ===== PWA: Service Worker + Cartel de instalación =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
+  });
+}
+
+(function setupInstallBanner() {
+  const STORAGE_KEY = 'mundial2026_install_dismissed';
+  const banner = document.getElementById('install-banner');
+
+  // Si ya está instalada (abierta como app) o el usuario ya cerró el cartel, no mostrar nada
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone || localStorage.getItem(STORAGE_KEY) === '1') return;
+
+  const ua = window.navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+
+  let deferredPrompt = null;
+
+  function dismiss() {
+    banner.style.display = 'none';
+    localStorage.setItem(STORAGE_KEY, '1');
+  }
+
+  function showBanner(html) {
+    banner.innerHTML = html;
+    banner.style.display = 'flex';
+    const closeBtn = document.getElementById('install-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', dismiss);
+  }
+
+  // Android / Chrome: esperar el evento nativo de instalación
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Accede más rápido desde tu pantalla de inicio.</span>
+        <button class="install-btn" id="install-action-btn">Instalar</button>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+      const actionBtn = document.getElementById('install-action-btn');
+      if (actionBtn) {
+        actionBtn.addEventListener('click', async () => {
+          banner.style.display = 'none';
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+          }
+          localStorage.setItem(STORAGE_KEY, '1');
+        });
+      }
+    }, 1500);
+  });
+
+  // iPhone/iPad en Safari: no existe instalación automática, mostrar instrucciones
+  if (isIOS && isSafari) {
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Toca <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b>.</span>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+    }, 1500);
+  }
+})();
 </script>
 
 </body>
