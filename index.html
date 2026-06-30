@@ -66,8 +66,8 @@
     .bracket-container {
       position: relative;
       display: inline-block;
-      min-width: 100%;
-      padding: 40px;
+      width: max-content;
+      padding: 20px;
     }
 
     /* ===== ÁRBOL VERTICAL (arriba/abajo, como la llave de referencia) ===== */
@@ -369,11 +369,88 @@
 
     @media (max-width: 1024px) {
       .bracket-container {
-        padding: 20px;
+        padding: 16px;
       }
 
       .tree li {
-        padding: 24px 5px 0 5px;
+        padding: 20px 4px 0 4px;
+      }
+
+      .tree li::before,
+      .tree li::after,
+      .tree li ul::before {
+        height: 20px;
+      }
+
+      .mini-card {
+        width: 78px;
+      }
+
+      .mini-card.final {
+        width: 88px;
+      }
+
+      .mini-card-header,
+      .mini-card-footer {
+        font-size: 0.5rem;
+        padding: 2px;
+      }
+
+      .mini-row {
+        min-height: 38px;
+        padding: 4px 3px;
+        gap: 1px;
+      }
+
+      .mini-abbr {
+        font-size: 0.6rem;
+      }
+
+      .mini-flag,
+      .mini-flag-ph {
+        width: 22px;
+        height: 16px;
+      }
+
+      .mini-score {
+        font-size: 0.75rem;
+      }
+
+      .mini-score.live {
+        font-size: 0.8rem;
+      }
+
+      .mini-penalty {
+        font-size: 0.55rem;
+      }
+
+      .connector-v {
+        height: 18px;
+      }
+
+      .trophy {
+        font-size: 2rem;
+      }
+
+      .final-row {
+        gap: 16px;
+      }
+
+      body {
+        padding: 10px;
+      }
+
+      .header h1 {
+        font-size: 1.4rem;
+      }
+
+      .header .subtitle {
+        font-size: 0.7rem;
+      }
+
+      .status-bar {
+        font-size: 0.7rem;
+        margin-bottom: 8px;
       }
     }
   </style>
