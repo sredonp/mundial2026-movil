@@ -188,6 +188,7 @@
     /* ===== CASILLAS ===== */
     .mini-card {
       cursor: pointer;
+      position: relative;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       margin: 0 auto;
       background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
@@ -207,6 +208,27 @@
 
     .mini-card.done {
       border-color: #4caf50;
+    }
+
+    .mini-card-live {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      background: #ff4444;
+      color: #fff;
+      font-size: 0.55rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 0 0 2px #0f1729;
+      animation: livePulse 1.4s infinite;
+      z-index: 2;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 0 rgba(255,68,68,0.6); }
+      50% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 5px rgba(255,68,68,0); }
     }
 
     .mini-card-header {
@@ -708,6 +730,11 @@
       color: #999;
       text-align: center;
     }
+
+    .match-modal-footer .status-live {
+      color: #ff4444;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -818,6 +845,30 @@ function fmtDate(s) {
   return `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
 }
 
+// Interpreta time_elapsed: 'notstarted', 'live', 'HT', 'FT', o un minuto ("23", "45+2", "90")
+function matchStatus(g) {
+  const te = (g.time_elapsed || '').toString().trim();
+
+  if (g.finished === 'TRUE' || te === 'FT') {
+    return { label: 'Finalizado', short: 'FIN', live: false };
+  }
+  if (te === 'HT') {
+    return { label: 'Descanso', short: 'DT', live: true };
+  }
+  if (te === 'live') {
+    return { label: 'En vivo', short: 'VIVO', live: true };
+  }
+  if (!te || te === 'notstarted') {
+    return { label: 'Por jugar', short: '', live: false };
+  }
+  // Minuto numérico (puede traer sufijo de descuento, ej. "45+2")
+  if (/^\d+(\+\d+)?$/.test(te)) {
+    return { label: `${te}'`, short: `${te}'`, live: true };
+  }
+  // Fallback: mostrar el valor tal cual
+  return { label: te, short: te, live: false };
+}
+
 function getAbbr(name) {
   if (isPending(name)) {
     let m = name?.match(/^Gan\. #(\d+)$/);
@@ -900,12 +951,15 @@ function miniRow(name, score, penalty, done) {
 
 function miniCard(g, byId, isFinal = false) {
   if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
-  
+
   const done = g.finished === 'TRUE';
   const h = resolveLabel(g, 'h', byId);
   const a = resolveLabel(g, 'a', byId);
-  
+  const status = matchStatus(g);
+  const liveBadge = status.live ? `<div class="mini-card-live">${status.short || '●'}</div>` : '';
+
   return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+    ${liveBadge}
     <div class="mini-card-content">
       ${miniRow(h, g.home_score, g.home_penalty_score, done)}
       ${miniRow(a, g.away_score, g.away_penalty_score, done)}
@@ -1056,6 +1110,7 @@ function buildMatchModal(g, byId) {
   const awayScorers = parseScorers(g.away_scorers);
   const hName = resolveLabel(g, 'h', byId);
   const aName = resolveLabel(g, 'a', byId);
+  const status = matchStatus(g);
 
   let scorersHtml = '';
   if (homeScorers.length || awayScorers.length) {
@@ -1088,7 +1143,7 @@ function buildMatchModal(g, byId) {
     ${modalTeamRow(g, 'a', byId, done)}
     ${scorersHtml}
     ${stadiumHtml}
-    <div class="match-modal-footer">${fmtDate(g.local_date)} · ${done ? 'Finalizado' : (g.time_elapsed === 'live' ? 'En vivo' : 'Por jugar')}</div>
+    <div class="match-modal-footer">${fmtDate(g.local_date)} · <span class="${status.live ? 'status-live' : ''}">${status.label}</span></div>
   </div>`;
 }
 
