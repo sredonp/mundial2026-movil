@@ -1,775 +1,406 @@
-<html lang="es"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Fase Final Mundial 2026</title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase Final Mundial 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-<!-- Vista previa al compartir (WhatsApp, Twitter/X, Facebook, Instagram, etc.) -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="Fase Final del Mundial 2026">
-<meta property="og:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia. Instalable como app en tu teléfono.">
-<meta property="og:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:url" content="https://sredonp.github.io/mundial2026-movil/">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Fase Final del Mundial 2026">
-<meta name="twitter:description" content="Bracket en vivo de la fase final, con datos en tiempo real en horario Colombia.">
-<meta name="twitter:image" content="https://sredonp.github.io/mundial2026-movil/icons/og-image.png">
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f0f12">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mundial 2026">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" href="icons/icon-192.png">
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
 
-<style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    .header h1 {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 5px;
+    }
 
-body {
-  background-color: #0f0f12;
-  color: #f1f1f4;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding: 16px 12px calc(env(safe-area-inset-bottom) + 24px);
-  min-height: 100vh;
-}
+    .header .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+    }
 
-h1 {
-  font-size: 1.35rem;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 4px;
-  text-align: center;
-}
+    .status-bar {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 0.8rem;
+      color: #666;
+    }
 
-.subtitle {
-  color: #a0a0b0;
-  margin-bottom: 14px;
-  font-size: 0.78rem;
-  text-align: center;
-}
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
 
-.status-bar {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  font-size: 0.74rem;
-  color: #8a8a9e;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
+    .dot.ok { background: #4caf50; }
+    .dot.loading { background: #ff9800; animation: pulse 1.5s infinite; }
+    .dot.err { background: #f44336; }
 
-.status-item { display:flex; align-items:center; gap:6px; }
-.dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.dot.loading { background:#fbbf24; animation:pulse 1.5s infinite; }
-.dot.ok      { background:#4ade80; }
-.dot.err     { background:#ef4444; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-/* ── Trofeo / Final destacada arriba ── */
-.spotlight {
-  background:linear-gradient(135deg,#2e2413,#1a1a24);
-  border:2px solid #e5a93b;
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:20px;
-  box-shadow:0 0 22px rgba(229,169,59,.18);
-  text-align:center;
-}
-.spotlight .trophy { font-size:2.2rem; animation:float 3s ease-in-out infinite; margin-bottom:6px; }
-@keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
-.spotlight .stitle {
-  font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
-  color:#e5a93b; font-weight:700; margin-bottom:10px;
-}
-.third-mini { margin-top:14px; padding-top:12px; border-top:1px dashed #3a3a4a; }
-.third-mini .stitle { color:#5c85d6; font-size:.66rem; }
+    .bracket-wrapper {
+      position: relative;
+      margin: 20px auto;
+      max-width: 100%;
+      overflow-x: auto;
+    }
 
-/* Ajustes del spotlight cuando vive dentro de la columna central del árbol
-   (ahora usa mini-tarjetas, igual que el resto del árbol → mucho más angosta) */
-.tree-center .spotlight { width:90px; margin-bottom:0; padding:8px 5px; }
-.tree-center .spotlight .trophy { font-size:1.3rem; margin-bottom:3px; }
-.tree-center .spotlight .stitle { font-size:.52rem; margin-bottom:5px; letter-spacing:.2px; }
-.tree-center .third-mini { margin-top:8px; padding-top:7px; }
+    .bracket-container {
+      position: relative;
+      display: inline-block;
+      min-width: 100%;
+      padding: 40px;
+    }
 
-/* ── Árbol horizontal (scroll lateral mínimo) ──────────────── */
-.tree-wrapper {
-  width:100%;
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
-  padding:4px 0 14px;
-}
+    /* ===== ÁRBOL VERTICAL (arriba/abajo, como la llave de referencia) ===== */
+    .bracket-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-.tree-grid {
-  display:flex;
-  align-items:stretch;
-  gap:4px;
-  padding:0 2px;
-  width:max-content;
-}
+    .connector-v {
+      width: 0;
+      height: 30px;
+      border-left: 2px solid #ffd700;
+      margin: 0 auto;
+    }
 
-.tree-col {
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:6px;
-  width:70px;
-  flex-shrink:0;
-}
+    /* Mitad superior: las hojas quedan arriba y convergen HACIA ABAJO hasta la
+       semifinal (justo encima de la FINAL). Se construye el árbol normal
+       (raíz arriba) y se invierte verticalmente con scaleY(-1); el contenido
+       de cada tarjeta se vuelve a invertir para que se lea correctamente. */
+    .tree-wrap.flip {
+      transform: scaleY(-1);
+    }
+    .tree-wrap.flip .mini-card {
+      transform: scaleY(-1);
+    }
 
-.tree-col-title {
-  font-size:.54rem;
-  text-align:center;
-  text-transform:uppercase;
-  letter-spacing:.2px;
-  color:#e5a93b;
-  font-weight:700;
-  margin-bottom:2px;
-  white-space:nowrap;
-}
+    .tree-wrap {
+      display: inline-block;
+    }
 
-.tree-center {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  width:96px;
-  flex-shrink:0;
-  padding:0 3px;
-}
+    .tree, .tree ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: inline-block;
+    }
 
-/* ── Mini-card de partido dentro del árbol ── */
-.mini-card {
-  background:#1a1a24;
-  border:1px solid #2e2e3e;
-  border-radius:6px;
-  padding:4px 5px;
-}
-.mini-card.done { border-color:#4ade80; }
+    .tree ul {
+      position: relative;
+      padding-top: 30px;
+    }
+    .tree ul::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
 
-.mini-row {
-  display:flex;
-  align-items:center;
-  gap:4px;
-  padding:2px 0;
-}
-.mini-row + .mini-row { border-top:1px solid #24242e; }
+    .tree li {
+      float: left;
+      text-align: center;
+      list-style-type: none;
+      position: relative;
+      padding: 30px 8px 0 8px;
+    }
 
-.mini-flag {
-  width:18px; height:13px;
-  border-radius:2px;
-  object-fit:cover;
-  flex-shrink:0;
-}
-.mini-flag-ph {
-  width:18px; height:13px;
-  border-radius:2px;
-  background:#22222e;
-  border:1px dashed #444;
-  flex-shrink:0;
-}
+    .tree li::before,
+    .tree li::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 50%;
+      width: 50%;
+      height: 30px;
+      border-top: 2px solid #4a9eff;
+    }
+    .tree li::after {
+      right: auto;
+      left: 50%;
+      border-left: 2px solid #4a9eff;
+    }
+    .tree li:only-child::after,
+    .tree li:only-child::before {
+      display: none;
+    }
+    .tree li:only-child { padding-top: 0; }
+    .tree li:first-child::before,
+    .tree li:last-child::after {
+      border: 0 none;
+    }
+    .tree li:last-child::before {
+      border-right: 2px solid #4a9eff;
+    }
+    .tree > li {
+      padding-top: 0;
+    }
+    .tree > li::before,
+    .tree > li::after {
+      display: none;
+    }
+    .tree li ul::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 0;
+      height: 30px;
+      border-left: 2px solid #4a9eff;
+    }
 
-.mini-abbr {
-  font-size:.56rem;
-  font-weight:700;
-  letter-spacing:.2px;
-  color:#e5a93b;
-  text-transform:uppercase;
-  flex:1;
-  min-width:0;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.mini-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+    /* ===== CASILLAS ===== */
+    .mini-card {
+      margin: 0 auto;
+      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
+      border: 2px solid #4a9eff;
+      border-radius: 8px;
+      width: 105px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+    }
 
-.mini-score {
-  font-size:.6rem;
-  font-weight:800;
-  color:#5c5c6e;
-  min-width:11px;
-  text-align:right;
-  flex-shrink:0;
-}
-.mini-score.live { color:#4ade80; }
+    .mini-card:hover {
+      border-color: #ffd700;
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+      transform: scale(1.08);
+    }
 
-/* ── Cards de partido ── */
-.card {
-  background:#1a1a24;
-  border:1px solid #2e2e3e;
-  border-radius:8px;
-  padding:10px 11px;
-  margin:7px 0;
-}
-.card.done  { border-color:#4ade80; }
+    .mini-card.done {
+      border-color: #4caf50;
+    }
 
-.card-header {
-  font-size:.66rem;
-  color:#8a8a9e;
-  margin-bottom:8px;
-  border-bottom:1px solid #2a2a35;
-  padding-bottom:4px;
-  font-weight:600;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+    .mini-card-header {
+      background: #0f1729;
+      padding: 2px 3px;
+      text-align: center;
+      font-size: 0.6rem;
+      color: #888;
+      border-bottom: 1px solid rgba(74, 158, 255, 0.3);
+    }
 
-.match-row {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:4px;
-  margin:10px 0 6px;
-}
+    .mini-card-content {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
 
-.team-cell {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-  min-width:0;
-}
+    .mini-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      min-height: 48px;
+      border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+      position: relative;
+      flex: 1;
+      gap: 2px;
+    }
 
-.team-abbr {
-  font-size:.74rem;
-  font-weight:700;
-  letter-spacing:.5px;
-  color:#e5a93b;
-  text-transform:uppercase;
-  white-space:nowrap;
-}
-.team-abbr.pending { color:#75758a; font-style:italic; font-weight:600; }
+    .mini-row:last-child {
+      border-bottom: none;
+    }
 
-.team-flag-big {
-  width:42px; height:31px;
-  border-radius:4px;
-  object-fit:cover;
-  box-shadow:0 2px 6px rgba(0,0,0,.35);
-}
-.team-flag-big-ph {
-  width:42px; height:31px;
-  border-radius:4px;
-  background:#22222e;
-  border:1px dashed #444;
-}
+    .mini-row:hover {
+      background: rgba(255, 215, 0, 0.05);
+    }
 
-.team-score-big {
-  font-size:1.05rem;
-  font-weight:800;
-  color:#5c5c6e;
-  min-width:18px;
-  text-align:center;
-}
-.team-score-big.live { color:#4ade80; }
+    .mini-abbr {
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #ffd700;
+      letter-spacing: 0.3px;
+    }
 
-.vs-divider {
-  font-size:.62rem;
-  color:#52525f;
-  font-weight:700;
-  flex-shrink:0;
-  padding:0 3px;
-  align-self:center;
-  margin-top:18px; /* alinea visualmente con la altura de la bandera */
-}
+    .mini-abbr.pending {
+      color: #888;
+    }
 
-.card-footer {
-  font-size:.66rem;
-  color:#6a6a7e;
-  margin-top:6px;
-  text-align:right;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
+    .mini-flag {
+      width: 28px;
+      height: 21px;
+      border-radius: 2px;
+      object-fit: cover;
+      background: #333;
+    }
 
-.err-msg { color:#ef4444; text-align:center; padding:30px 14px; }
-.loading-msg { color:#8a8a9e; text-align:center; padding:30px 14px; font-size:.85rem; }
+    .mini-flag-ph {
+      width: 28px;
+      height: 21px;
+      background: #444;
+      border-radius: 2px;
+    }
 
-/* Indicador de carga inicial centrado */
-#bracket { min-height: 100px; }
+    .mini-score-wrap {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.1;
+    }
 
-/* ── Banner de instalación (aparece solo, sin que el usuario lo pida) ── */
-.install-banner {
-  position:fixed;
-  left:12px; right:12px;
-  bottom:calc(env(safe-area-inset-bottom) + 12px);
-  background:linear-gradient(135deg,#2e2413,#1a1a24);
-  border:1px solid #e5a93b;
-  border-radius:12px;
-  padding:12px 12px 12px 14px;
-  display:none;
-  align-items:center;
-  gap:10px;
-  box-shadow:0 10px 26px rgba(0,0,0,.45);
-  z-index:50;
-  animation:installSlideUp .35s ease;
-}
-@keyframes installSlideUp { from{transform:translateY(24px); opacity:0} to{transform:translateY(0); opacity:1} }
-.install-text {
-  flex:1;
-  font-size:.78rem;
-  line-height:1.45;
-  color:#f1f1f4;
-}
-.install-text strong { color:#e5a93b; }
-.share-ico {
-  width:15px; height:15px;
-  vertical-align:-3px;
-  margin:0 1px;
-  fill:#e5a93b;
-}
-.install-btn {
-  background:#e5a93b;
-  color:#1a1a24;
-  font-weight:700;
-  font-size:.78rem;
-  border:none;
-  border-radius:8px;
-  padding:8px 14px;
-  flex-shrink:0;
-  cursor:pointer;
-  white-space:nowrap;
-}
-.install-close {
-  background:transparent;
-  border:none;
-  color:#8a8a9e;
-  font-size:1.05rem;
-  padding:2px 4px;
-  cursor:pointer;
-  flex-shrink:0;
-  line-height:1;
-}
+    .mini-score {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #4caf50;
+    }
 
-</style>
-<style type="text/css"></style></head>
+    .mini-score.live {
+      color: #4caf50;
+      font-size: 1rem;
+    }
+
+    .mini-score:not(.live) {
+      color: #888;
+    }
+
+    .penalty-text {
+      font-size: 0.55rem;
+      color: #ff9800;
+    }
+
+    .mini-penalty {
+      font-size: 0.6rem;
+      font-weight: normal;
+      color: #ff9800;
+    }
+
+    .mini-card-footer {
+      background: #0f1729;
+      padding: 4px 3px;
+      border-top: 3px solid #ff4444;
+      font-size: 0.55rem;
+      color: #888;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .mini-card.final {
+      border: 3px solid #ffd700;
+      width: 120px;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+
+    .trophy {
+      font-size: 3rem;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .final-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #ffd700;
+      text-transform: uppercase;
+    }
+
+    .center-final {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .final-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .final-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .third-place {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding-top: 22px;
+    }
+
+    .third-title {
+      font-size: 0.7rem;
+      color: #aaa;
+      font-weight: bold;
+    }
+
+    .error-msg {
+      background: #c82333;
+      border: 2px solid #f44336;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+      margin: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .bracket-container {
+        padding: 20px;
+      }
+
+      .tree li {
+        padding: 24px 5px 0 5px;
+      }
+    }
+  </style>
+</head>
 <body>
 
-<h1>Fase Final del Mundial 2026</h1>
-<div class="subtitle">Datos en tiempo real · Horario Colombia (UTC-5)</div>
-
-<div class="status-bar">
-  <div class="status-item">
-    <span class="dot ok" id="dot"></span>
-    <span id="st">104 partidos cargados ✓</span>
-  </div>
-  <div class="status-item"><span id="upd">Última actualización: 18:33h</span></div>
+<div class="header">
+  <h1>⚽ MUNDIAL 2026</h1>
+  <div class="subtitle">Fase Final · Datos en tiempo real · Colombia (UTC-5)</div>
 </div>
 
-<div id="bracket">
-    <div class="tree-wrapper">
-      <div class="tree-grid">
-        <div class="tree-col">
-    <div class="tree-col-title">1/16</div>
-    <div class="mini-card done" title="#74">
-    <div class="mini-row" title="Alemania">
-    <img src="https://flagcdn.com/20x15/de.png" alt="Alemania" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">GER</span>
-    <span class="mini-score live">1</span>
-  </div>
-    <div class="mini-row" title="Paraguay">
-    <img src="https://flagcdn.com/20x15/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">PAR</span>
-    <span class="mini-score live">1</span>
-  </div>
-  </div><div class="mini-card " title="#77">
-    <div class="mini-row" title="Francia">
-    <img src="https://flagcdn.com/20x15/fr.png" alt="Francia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">FRA</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Suecia">
-    <img src="https://flagcdn.com/20x15/se.png" alt="Suecia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">SWE</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card done" title="#73">
-    <div class="mini-row" title="Sudáfrica">
-    <img src="https://flagcdn.com/20x15/za.png" alt="Sudáfrica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">RSA</span>
-    <span class="mini-score live">0</span>
-  </div>
-    <div class="mini-row" title="Canadá">
-    <img src="https://flagcdn.com/20x15/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">CAN</span>
-    <span class="mini-score live">1</span>
-  </div>
-  </div><div class="mini-card " title="#75">
-    <div class="mini-row" title="Holanda">
-    <img src="https://flagcdn.com/20x15/nl.png" alt="Holanda" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">NED</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Marruecos">
-    <img src="https://flagcdn.com/20x15/ma.png" alt="Marruecos" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">MAR</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#83">
-    <div class="mini-row" title="Portugal">
-    <img src="https://flagcdn.com/20x15/pt.png" alt="Portugal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">POR</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Croacia">
-    <img src="https://flagcdn.com/20x15/hr.png" alt="Croacia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">CRO</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#84">
-    <div class="mini-row" title="España">
-    <img src="https://flagcdn.com/20x15/es.png" alt="España" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">ESP</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Austria">
-    <img src="https://flagcdn.com/20x15/at.png" alt="Austria" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">AUT</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#81">
-    <div class="mini-row" title="EE. UU.">
-    <img src="https://flagcdn.com/20x15/us.png" alt="EE. UU." class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">USA</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Bosnia">
-    <img src="https://flagcdn.com/20x15/ba.png" alt="Bosnia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">BIH</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#82">
-    <div class="mini-row" title="Bélgica">
-    <img src="https://flagcdn.com/20x15/be.png" alt="Bélgica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">BEL</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Senegal">
-    <img src="https://flagcdn.com/20x15/sn.png" alt="Senegal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">SEN</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">Octavos</div>
-    <div class="mini-card " title="#89">
-    <div class="mini-row" title="Paraguay">
-    <img src="https://flagcdn.com/20x15/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">PAR</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #77">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G77</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#90">
-    <div class="mini-row" title="Canadá">
-    <img src="https://flagcdn.com/20x15/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">CAN</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #75">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G75</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#93">
-    <div class="mini-row" title="Gan. #83">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G83</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #84">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G84</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#94">
-    <div class="mini-row" title="Gan. #81">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G81</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #82">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G82</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">Cuartos</div>
-    <div class="mini-card " title="#97">
-    <div class="mini-row" title="Gan. #89">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G89</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #90">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G90</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#98">
-    <div class="mini-row" title="Gan. #93">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G93</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #94">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G94</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">Semis</div>
-    <div class="mini-card " title="#101">
-    <div class="mini-row" title="Gan. #97">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G97</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #98">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G98</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-center">
-    <div class="spotlight">
-      <div class="trophy">🏆</div>
-      <div class="stitle">Final</div>
-      <div class="mini-card " title="#104">
-    <div class="mini-row" title="Gan. #101">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G101</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #102">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G102</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-      <div class="third-mini">
-        <div class="stitle">3er Puesto</div>
-        <div class="mini-card " title="#103">
-    <div class="mini-row" title="Per. #101">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">P101</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Per. #102">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">P102</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-      </div>
-    </div></div>
-        <div class="tree-col">
-    <div class="tree-col-title">Semis</div>
-    <div class="mini-card " title="#102">
-    <div class="mini-row" title="Gan. #99">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G99</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #100">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G100</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">Cuartos</div>
-    <div class="mini-card " title="#99">
-    <div class="mini-row" title="Gan. #91">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G91</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #92">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G92</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#100">
-    <div class="mini-row" title="Gan. #95">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G95</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #96">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G96</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">Octavos</div>
-    <div class="mini-card " title="#91">
-    <div class="mini-row" title="Brasil">
-    <img src="https://flagcdn.com/20x15/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">BRA</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #78">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G78</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#92">
-    <div class="mini-row" title="Gan. #79">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G79</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #80">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G80</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#95">
-    <div class="mini-row" title="Gan. #86">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G86</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #88">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G88</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#96">
-    <div class="mini-row" title="Gan. #85">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G85</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Gan. #87">
-    <span class="mini-flag-ph"></span>
-    <span class="mini-abbr pending">G87</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-        <div class="tree-col">
-    <div class="tree-col-title">1/16</div>
-    <div class="mini-card done" title="#76">
-    <div class="mini-row" title="Brasil">
-    <img src="https://flagcdn.com/20x15/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">BRA</span>
-    <span class="mini-score live">2</span>
-  </div>
-    <div class="mini-row" title="Japón">
-    <img src="https://flagcdn.com/20x15/jp.png" alt="Japón" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">JPN</span>
-    <span class="mini-score live">1</span>
-  </div>
-  </div><div class="mini-card " title="#78">
-    <div class="mini-row" title="Costa de Marfil">
-    <img src="https://flagcdn.com/20x15/ci.png" alt="Costa de Marfil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">CIV</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Noruega">
-    <img src="https://flagcdn.com/20x15/no.png" alt="Noruega" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">NOR</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#79">
-    <div class="mini-row" title="México">
-    <img src="https://flagcdn.com/20x15/mx.png" alt="México" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">MEX</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Ecuador">
-    <img src="https://flagcdn.com/20x15/ec.png" alt="Ecuador" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">ECU</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#80">
-    <div class="mini-row" title="Inglaterra">
-    <img src="https://flagcdn.com/20x15/gb-eng.png" alt="Inglaterra" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">ENG</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="RD Congo">
-    <img src="https://flagcdn.com/20x15/cd.png" alt="RD Congo" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">COD</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#86">
-    <div class="mini-row" title="Argentina">
-    <img src="https://flagcdn.com/20x15/ar.png" alt="Argentina" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">ARG</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Cabo Verde">
-    <img src="https://flagcdn.com/20x15/cv.png" alt="Cabo Verde" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">CPV</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#88">
-    <div class="mini-row" title="Australia">
-    <img src="https://flagcdn.com/20x15/au.png" alt="Australia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">AUS</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Egipto">
-    <img src="https://flagcdn.com/20x15/eg.png" alt="Egipto" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">EGY</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#85">
-    <div class="mini-row" title="Suiza">
-    <img src="https://flagcdn.com/20x15/ch.png" alt="Suiza" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">SUI</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Argelia">
-    <img src="https://flagcdn.com/20x15/dz.png" alt="Argelia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">ALG</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div><div class="mini-card " title="#87">
-    <div class="mini-row" title="Colombia">
-    <img src="https://flagcdn.com/20x15/co.png" alt="Colombia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">COL</span>
-    <span class="mini-score ">–</span>
-  </div>
-    <div class="mini-row" title="Ghana">
-    <img src="https://flagcdn.com/20x15/gh.png" alt="Ghana" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
-    <span class="mini-abbr ">GHA</span>
-    <span class="mini-score ">–</span>
-  </div>
-  </div>
-  </div>
-      </div>
-    </div></div>
+<div class="status-bar">
+  <span class="dot ok" id="dot"></span>
+  <span id="st">Cargando...</span> · <span id="upd">--:--</span>
+</div>
 
-<div id="installBanner" class="install-banner" role="status"></div>
+<div class="bracket-wrapper">
+  <div class="bracket-container">
+    <div class="bracket-content" id="bracket"></div>
+  </div>
+</div>
 
 <script>
 const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
 
-// ── Banderas ──────────────────────────────────────────────
 const FLAGS = {
-  'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr',
-  'Czech Republic':'cz','Czechia':'cz',
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr','Czech Republic':'cz','Czechia':'cz',
   'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
   'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
   'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
@@ -786,11 +417,8 @@ const FLAGS = {
   'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
 };
 
-// ── Traducción de nombres al español (solo para mostrar; las banderas
-// siguen buscándose con el nombre en inglés tal como lo manda la API) ──
 const TEAM_ES = {
-  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
-  'Czech Republic':'Chequia','Czechia':'Chequia',
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur','Czech Republic':'Chequia','Czechia':'Chequia',
   'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
   'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
   'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
@@ -807,14 +435,8 @@ const TEAM_ES = {
   'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
 };
 
-function translateTeam(name) {
-  return TEAM_ES[name] || name;
-}
-
-// ── Abreviaturas de 3 letras (códigos FIFA, reconocibles internacionalmente) ──
 const ABBR_ES = {
-  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR',
-  'Czech Republic':'CZE','Czechia':'CZE',
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR','Czech Republic':'CZE','Czechia':'CZE',
   'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
   'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
   'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
@@ -831,23 +453,6 @@ const ABBR_ES = {
   'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
 };
 
-// Para los cupos sin resolver, abrevia el placeholder en vez de mostrar
-// "?" sin información: G73 (ganador #73), P101 (perdedor #101), 1°A / 2°B
-// (1° o 2° de grupo), 3° (mejor tercero).
-function getAbbr(name) {
-  if (isPending(name)) {
-    let m;
-    m = name.match(/^Gan\. #(\d+)$/); if (m) return `G${m[1]}`;
-    m = name.match(/^Per\. #(\d+)$/); if (m) return `P${m[1]}`;
-    m = name.match(/^1\.° Grupo ([A-L])$/); if (m) return `1°${m[1]}`;
-    m = name.match(/^2\.° Grupo ([A-L])$/); if (m) return `2°${m[1]}`;
-    if (name && name.startsWith('Mejor')) return '3°';
-    return '?';
-  }
-  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
-}
-
-// ── Estadios ─────────────────────────────────────────────
 const STAD = {
   1:'AT&T (Dallas)',2:"Levi's (SF)",3:'Rose Bowl (LA)',4:'SoFi (LA)',
   5:'Hard Rock (Miami)',6:'MetLife (NY/NJ)',7:'Arrowhead (KC)',
@@ -857,34 +462,45 @@ const STAD = {
   15:'NRG (Houston)',16:'Q2 (Austin)',
 };
 
-// ── Fecha a Colombia UTC-5 ────────────────────────────────
-const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const pad   = n => String(n).padStart(2,'0');
+const pad = n => String(n).padStart(2,'0');
 
 function fmtDate(s) {
   if (!s) return '';
   const [dp, tp] = s.split(' ');
   const [mo,dd,yy] = dp.split('/');
   const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
-  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]} · ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+  return `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
 }
 
-// ── Resolver label cuando no hay nombre directo ───────────
-// Primero confiamos en lo que diga la API (home_team_id/name_en). Solo si
-// la API todavía no resolvió ese cruce, intentamos calcularlo nosotros:
-// si el partido que alimenta este cupo ya terminó, sacamos el ganador (o
-// perdedor, para el partido por el 3er puesto) directamente del marcador.
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m = name?.match(/^Gan\. #(\d+)$/);
+    if (m) return `G${m[1]}`;
+    m = name?.match(/^Per\. #(\d+)$/);
+    if (m) return `P${m[1]}`;
+    m = name?.match(/^1\.° Grupo ([A-L])$/);
+    if (m) return `1°${m[1]}`;
+    m = name?.match(/^2\.° Grupo ([A-L])$/);
+    if (m) return `2°${m[1]}`;
+    if (name?.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
+}
+
+function isPending(name) {
+  return !name || name.startsWith('Gan.') || name.startsWith('Per.') || name.startsWith('1.°') || name.startsWith('2.°') || name.startsWith('Mejor');
+}
+
 function resolveLabel(g, side, byId, visited) {
   visited = visited || new Set();
-  const id  = side === 'h' ? g.home_team_id  : g.away_team_id;
-  const nm  = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
-  const lbl = side === 'h' ? g.home_team_label   : g.away_team_label;
+  const id = side === 'h' ? g.home_team_id : g.away_team_id;
+  const nm = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label : g.away_team_label;
 
-  // Si hay nombre real y el id no es 0, úsalo (la API ya lo resolvió)
   if (id && id !== '0' && nm) return nm;
-
   if (!lbl) return '–';
+  
   let m;
   m = lbl.match(/^Winner Group ([A-L])$/);
   if (m) return `1.° Grupo ${m[1]}`;
@@ -899,161 +515,135 @@ function resolveLabel(g, side, byId, visited) {
   return lbl;
 }
 
-// Calcula, a partir del marcador, qué equipo avanza (ganador) o queda
-// eliminado (perdedor) de un partido ya finalizado. Si ese partido a su vez
-// dependía de otro cruce sin resolver, sigue la cadena hacia atrás.
 function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
   if (!byId || visited.has(matchId)) return null;
   visited.add(matchId);
-
   const g = byId[String(matchId)];
   if (!g || g.finished !== 'TRUE') return null;
-
   const hs = parseFloat(g.home_score);
   const as = parseFloat(g.away_score);
-  if (isNaN(hs) || isNaN(as) || hs === as) return null; // empate sin definir (posibles penales) → no arriesgamos un dato incorrecto
-
+  if (isNaN(hs) || isNaN(as) || hs === as) return null;
   const homeAdvances = wantWinner ? hs > as : hs < as;
   return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
 }
 
-function isPending(name) {
-  return !name || name.startsWith('Gan.') || name.startsWith('Per.')
-    || name.startsWith('1.°') || name.startsWith('2.°')
-    || name.startsWith('Mejor');
-}
-
-// ── HTML de una casilla de equipo (abreviatura arriba, bandera en medio,
-// marcador abajo) ──────────────────────────────────────────
-function teamCell(name, score, done) {
-  const pend = isPending(name);
-  const abbr = getAbbr(name);
-  const flagCode = FLAGS[name]; // la bandera se busca con el nombre en inglés (llave original)
-  const displayFull = pend ? name : translateTeam(name); // nombre completo, solo para alt/title
-  const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/40x30/${flagCode}.png" alt="${displayFull}" class="team-flag-big"
-            onerror="this.outerHTML='<span class=\\'team-flag-big-ph\\'></span>'">`
-    : `<span class="team-flag-big-ph"></span>`;
-  const live = (done && score !== null && score !== undefined && score !== 'null');
-  const scoreTxt = live ? score : '–';
-  return `<div class="team-cell" title="${displayFull}">
-    <div class="team-abbr ${pend?'pending':''}">${abbr}</div>
-    ${flagHtml}
-    <div class="team-score-big ${live?'live':''}">${scoreTxt}</div>
-  </div>`;
-}
-
-// ── HTML de una match card ────────────────────────────────
-function mkCard(g, byId) {
-  if (!g) return '';
-  const done = g.finished === 'TRUE';
-  const h = resolveLabel(g,'h', byId);
-  const a = resolveLabel(g,'a', byId);
-  const st = STAD[parseInt(g.stadium_id)] || `Est. ${g.stadium_id}`;
-  return `<div class="card ${done?'done':''}">
-    <div class="card-header">#${g.id} · ${fmtDate(g.local_date)}</div>
-    <div class="match-row">
-      ${teamCell(h, g.home_score, done)}
-      <div class="vs-divider">VS</div>
-      ${teamCell(a, g.away_score, done)}
-    </div>
-    <div class="card-footer">${st}</div>
-  </div>`;
-}
-
-// ── Mapa real del árbol (verificado con el JSON de worldcup26.ir) ────
-// Distribución visual izquierda → centro ← derecha:
-const R32L = [74,77,73,75,83,84,81,82];
-const R16L = [89,90,93,94];
-const QFL  = [97,98];
-const R32R = [76,78,79,80,86,88,85,87];
-const R16R = [91,92,95,96];
-const QFR  = [99,100];
-
-// ── Mini-fila de equipo dentro del árbol (bandera + abreviatura + marcador) ──
-function miniRow(name, score, done) {
+function miniRow(name, score, penalty, done) {
   const pend = isPending(name);
   const abbr = getAbbr(name);
   const flagCode = FLAGS[name];
-  const displayFull = pend ? name : translateTeam(name);
+  const displayFull = pend ? name : (TEAM_ES[name] || name);
   const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/20x15/${flagCode}.png" alt="${displayFull}" class="mini-flag"
-            onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
+    ? `<img src="https://flagcdn.com/32x24/${flagCode}.png" alt="${displayFull}" class="mini-flag" onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
     : `<span class="mini-flag-ph"></span>`;
-  const live = (done && score !== null && score !== undefined && score !== 'null');
+  
+  const live = done && score !== null && score !== undefined && score !== 'null';
   const scoreTxt = live ? score : '–';
+  const penaltyTxt = penalty !== null && penalty !== undefined && penalty !== '' && penalty !== 'null' && live
+    ? `<span class="mini-penalty">(${penalty})</span>`
+    : '';
+
   return `<div class="mini-row" title="${displayFull}">
-    ${flagHtml}
     <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
-    <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+    ${flagHtml}
+    <span class="mini-score-wrap">
+      <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+      ${penaltyTxt}
+    </span>
   </div>`;
 }
 
-// ── Mini-card de partido (los dos equipos apilados) ───────────────────
-function miniCard(g, byId) {
-  if (!g) return '<div class="mini-card" style="opacity:.25">&nbsp;</div>';
+function miniCard(g, byId, isFinal = false) {
+  if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
+  
   const done = g.finished === 'TRUE';
-  const h = resolveLabel(g,'h', byId);
-  const a = resolveLabel(g,'a', byId);
-  return `<div class="mini-card ${done?'done':''}" title="#${g.id}">
-    ${miniRow(h, g.home_score, done)}
-    ${miniRow(a, g.away_score, done)}
+  const h = resolveLabel(g, 'h', byId);
+  const a = resolveLabel(g, 'a', byId);
+  
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+    <div class="mini-card-header">#${g.id}</div>
+    <div class="mini-card-content">
+      ${miniRow(h, g.home_score, g.home_penalty_score, done)}
+      ${miniRow(a, g.away_score, g.away_penalty_score, done)}
+    </div>
+    <div class="mini-card-footer">${fmtDate(g.local_date)}</div>
   </div>`;
 }
 
-function treeColumn(title, ids, byId) {
-  const cards = ids.map(id => miniCard(byId[String(id)], byId)).join('');
-  return `<div class="tree-col">
-    <div class="tree-col-title">${title}</div>
-    ${cards}
-  </div>`;
+// Cada nivel va de hojas (1/16) hacia la raíz (semifinal). Los pares
+// consecutivos del nivel inferior alimentan cada partido del nivel superior:
+// levels[0][0],levels[0][1] -> levels[1][0]; levels[0][2],levels[0][3] -> levels[1][1]; etc.
+const UPPER_LEVELS = [
+  ['74', '77', '73', '75', '83', '84', '81', '82'], // 1/16
+  ['89', '90', '93', '94'],                          // octavos
+  ['97', '98'],                                      // cuartos
+  ['101'],                                           // semifinal
+];
+
+const LOWER_LEVELS = [
+  ['76', '78', '79', '80', '86', '88', '85', '87'], // 1/16
+  ['91', '92', '95', '96'],                          // octavos
+  ['99', '100'],                                     // cuartos
+  ['102'],                                           // semifinal
+];
+
+function buildTreeNode(levels, byId, level, idx) {
+  const id = levels[level][idx];
+  const card = miniCard(byId[id], byId);
+  if (level === 0) {
+    return `<li>${card}</li>`;
+  }
+  const left = buildTreeNode(levels, byId, level - 1, idx * 2);
+  const right = buildTreeNode(levels, byId, level - 1, idx * 2 + 1);
+  return `<li>${card}<ul>${left}${right}</ul></li>`;
 }
 
-function buildSpotlight(byId) {
-  const final = byId['104'];
-  const third = byId['103'];
-  return `
-    <div class="spotlight">
-      <div class="trophy">🏆</div>
-      <div class="stitle">Final</div>
-      ${final ? miniCard(final, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
-      <div class="third-mini">
-        <div class="stitle">3er Puesto</div>
-        ${third ? miniCard(third, byId) : '<div class="loading-msg" style="padding:6px;font-size:.6rem">Por definir</div>'}
-      </div>
-    </div>`;
-}
-
-function buildTree(byId) {
-  return `
-    <div class="tree-wrapper">
-      <div class="tree-grid">
-        ${treeColumn('1/16', R32L, byId)}
-        ${treeColumn('Octavos', R16L, byId)}
-        ${treeColumn('Cuartos', QFL, byId)}
-        ${treeColumn('Semis', [101], byId)}
-        <div class="tree-center">${buildSpotlight(byId)}</div>
-        ${treeColumn('Semis', [102], byId)}
-        ${treeColumn('Cuartos', QFR, byId)}
-        ${treeColumn('Octavos', R16R, byId)}
-        ${treeColumn('1/16', R32R, byId)}
-      </div>
-    </div>`;
+function buildHalfTree(levels, byId, flip) {
+  const root = buildTreeNode(levels, byId, levels.length - 1, 0);
+  return `<div class="tree-wrap ${flip ? 'flip' : ''}"><ul class="tree">${root}</ul></div>`;
 }
 
 function buildBracket(games) {
   const byId = {};
   games.forEach(g => { byId[String(g.id)] = g; });
 
-  document.getElementById('bracket').innerHTML = buildTree(byId);
+  // Mitad superior: hojas arriba, convergiendo HACIA ABAJO hasta la semifinal
+  // (justo encima de la final), igual que en la imagen de referencia.
+  let html = buildHalfTree(UPPER_LEVELS, byId, true);
+
+  html += `<div class="connector-v"></div>`;
+
+  // FINAL EN EL CENTRO
+  const final = byId['104'];
+  const third = byId['103'];
+
+  html += `<div class="center-final">
+    <div class="trophy">🏆</div>
+    <div class="final-row">
+      <div class="final-block">
+        <div class="final-title">Final</div>
+        ${final ? miniCard(final, byId, true) : '<div class="mini-card final" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+      <div class="third-place">
+        <div class="third-title">3er Puesto</div>
+        ${third ? miniCard(third, byId) : '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+    </div>
+  </div>`;
+
+  html += `<div class="connector-v"></div>`;
+
+  // Mitad inferior: semifinal arriba (debajo de la final), expandiéndose
+  // HACIA ABAJO hasta las hojas (1/16).
+  html += buildHalfTree(LOWER_LEVELS, byId, false);
+
+  document.getElementById('bracket').innerHTML = html;
 }
 
-// ── Carga principal ───────────────────────────────────────
 async function load() {
   document.getElementById('dot').className = 'dot loading';
   document.getElementById('st').textContent = 'Actualizando…';
   try {
-    const res  = await fetch(`${PROXY}?proxy=games`);
+    const res = await fetch(`${PROXY}?proxy=games`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const games = Array.isArray(data) ? data : (data.games || []);
@@ -1064,12 +654,10 @@ async function load() {
     document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
 
     const now = new Date();
-    document.getElementById('upd').textContent =
-      `Última actualización: ${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+    document.getElementById('upd').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}h`;
   } catch(e) {
     console.error(e);
-    document.getElementById('bracket').innerHTML =
-      `<div class="err-msg">❌ ${e.message}<br><small>Verifica que el Apps Script tenga ?proxy=games activo.</small></div>`;
+    document.getElementById('bracket').innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
     document.getElementById('dot').className = 'dot err';
     document.getElementById('st').textContent = 'Error al cargar';
   }
@@ -1077,78 +665,7 @@ async function load() {
 
 load();
 setInterval(load, 120000);
-
-// ── Banner de instalación (aparece solo) ──────────────────
-const INSTALL_LS_KEY = 'mundial2026_install_dismissed_v1';
-
-function isIos() {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true;
-}
-function wasDismissed() {
-  try { return localStorage.getItem(INSTALL_LS_KEY) === '1'; }
-  catch(e) { return false; }
-}
-function dismissBanner() {
-  document.getElementById('installBanner').style.display = 'none';
-  try { localStorage.setItem(INSTALL_LS_KEY, '1'); } catch(e) {}
-}
-
-const SHARE_ICON = `<svg class="share-ico" viewBox="0 0 24 24"><path d="M12 2l-5 5h3v9h4V7h3l-5-5zM5 13v7a2 2 0 002 2h10a2 2 0 002-2v-7h-2v7H7v-7H5z"/></svg>`;
-
-function showIosBanner() {
-  if (isStandalone() || wasDismissed()) return;
-  const el = document.getElementById('installBanner');
-  el.innerHTML = `
-    <span class="install-text">
-      Instala esta app: toca ${SHARE_ICON} <strong>Compartir</strong> y luego
-      <strong>"Agregar a pantalla de inicio"</strong>.
-    </span>
-    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
-  el.style.display = 'flex';
-  document.getElementById('installCloseBtn').onclick = dismissBanner;
-}
-
-let deferredInstallPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  if (isStandalone() || wasDismissed()) return;
-  const el = document.getElementById('installBanner');
-  el.innerHTML = `
-    <span class="install-text">Instala esta app para abrirla directo, sin el navegador de fondo.</span>
-    <button class="install-btn" id="installNowBtn">Instalar</button>
-    <button class="install-close" aria-label="Cerrar" id="installCloseBtn">✕</button>`;
-  el.style.display = 'flex';
-  document.getElementById('installCloseBtn').onclick = dismissBanner;
-  document.getElementById('installNowBtn').onclick = async () => {
-    el.style.display = 'none';
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-      deferredInstallPrompt = null;
-    }
-  };
-});
-
-// En iOS no existe evento de instalación automática (restricción de Apple),
-// así que mostramos las instrucciones nosotros mismos, sin que el usuario
-// tenga que buscarlas.
-if (isIos() && !isStandalone() && !wasDismissed()) {
-  setTimeout(showIosBanner, 1500);
-}
-
-// ── Registro del Service Worker (PWA) ─────────────────────
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW error:', err));
-  });
-}
 </script>
 
-
-</body></html>
+</body>
+</html>
