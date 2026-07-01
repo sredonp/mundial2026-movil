@@ -862,6 +862,40 @@
       display: block;
       margin-bottom: 8px;
     }
+    .stat-legend {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: #eee;
+    }
+    .stat-legend-side {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stat-legend-side.right {
+      flex-direction: row-reverse;
+    }
+    .stat-legend-flag {
+      width: 16px;
+      height: 12px;
+      object-fit: cover;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .stat-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .stat-legend-dot.home { background: #4caf50; }
+    .stat-legend-dot.away { background: #2196f3; }
     .stat-row {
       margin-bottom: 8px;
     }
@@ -1154,10 +1188,9 @@ function extractESPNStats(home, away) {
     if (h[key] == null && a[key] == null) continue;
     rows.push({ key, label: STAT_LABELS[key] || key, home: h[key] ?? '0', away: a[key] ?? '0' });
   }
-  // Incluir cualquier estadística no contemplada explícitamente
-  for (const key of Object.keys(h)) {
-    if (!STAT_ORDER.includes(key)) rows.push({ key, label: STAT_LABELS[key] || key, home: h[key], away: a[key] ?? '0' });
-  }
+  // Nota: solo mostramos las estadísticas contempladas en STAT_ORDER (nivel
+  // de equipo/partido). ESPN a veces mezcla estadísticas de jugadores
+  // individuales (appearances, goalAssists, etc.) que no aportan aquí.
   return rows.length ? rows : null;
 }
 
@@ -1648,6 +1681,20 @@ function buildMatchModal(g, byId) {
   // Estadísticas del partido (posesión, tiros, etc.), cuando ESPN las provee
   let statsHtml = '';
   if (em?.stats?.length) {
+    const hFlag = FLAGS[hName];
+    const aFlag = FLAGS[aName];
+    const legendHtml = `<div class="stat-legend">
+      <span class="stat-legend-side">
+        ${hFlag ? `<img src="https://flagcdn.com/24x18/${hFlag}.png" alt="" class="stat-legend-flag">` : ''}
+        <span class="stat-legend-dot home"></span>
+        <span>${TEAM_ES[hName] || hName}</span>
+      </span>
+      <span class="stat-legend-side right">
+        <span>${TEAM_ES[aName] || aName}</span>
+        <span class="stat-legend-dot away"></span>
+        ${aFlag ? `<img src="https://flagcdn.com/24x18/${aFlag}.png" alt="" class="stat-legend-flag">` : ''}
+      </span>
+    </div>`;
     const barsHtml = em.stats.map(s => {
       // Solo pintamos barra comparativa si ambos valores son numéricos (p.ej. posesión, tiros)
       const hNum = parseFloat(s.home);
@@ -1669,6 +1716,7 @@ function buildMatchModal(g, byId) {
     }).join('');
     statsHtml = `<div class="match-modal-stats">
       <b>Estadísticas</b>
+      ${legendHtml}
       ${barsHtml}
     </div>`;
   }
