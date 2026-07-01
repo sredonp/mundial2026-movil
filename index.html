@@ -331,6 +331,17 @@
       color: #888;
     }
 
+    .mini-score.inprogress {
+      color: #ff9800;
+      font-size: 1rem;
+      animation: scorePulse 1.3s infinite;
+    }
+
+    @keyframes scorePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
     .penalty-text {
       font-size: 0.55rem;
       color: #ff9800;
@@ -469,6 +480,10 @@
       }
 
       .mini-score.live {
+        font-size: 0.8rem;
+      }
+
+      .mini-score.inprogress {
         font-size: 0.8rem;
       }
 
@@ -672,6 +687,11 @@
       font-size: 0.85rem;
       color: #ff9800;
       margin-left: 4px;
+    }
+
+    .match-modal-team-score.inprogress {
+      color: #ff9800;
+      animation: scorePulse 1.3s infinite;
     }
 
     .match-modal-divider {
@@ -1080,7 +1100,7 @@ function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
   return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
 }
 
-function miniRow(name, score, penalty, done) {
+function miniRow(name, score, penalty, done, inProgress) {
   const pend = isPending(name);
   const abbr = getAbbr(name);
   const flagCode = FLAGS[name];
@@ -1088,9 +1108,12 @@ function miniRow(name, score, penalty, done) {
   const flagHtml = (!pend && flagCode)
     ? `<img src="https://flagcdn.com/32x24/${flagCode}.png" alt="${displayFull}" class="mini-flag" onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
     : `<span class="mini-flag-ph"></span>`;
-  
-  const live = done && score !== null && score !== undefined && score !== 'null';
-  const scoreTxt = live ? score : '–';
+
+  const hasScore = score !== null && score !== undefined && score !== 'null';
+  const live = done && hasScore;
+  const showPartial = !done && inProgress && hasScore;
+  const scoreTxt = (live || showPartial) ? score : '–';
+  const scoreClass = live ? 'live' : (showPartial ? 'inprogress' : '');
   const penaltyTxt = penalty !== null && penalty !== undefined && penalty !== '' && penalty !== 'null' && live
     ? `<span class="mini-penalty">(${penalty})</span>`
     : '';
@@ -1099,7 +1122,7 @@ function miniRow(name, score, penalty, done) {
     <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
     ${flagHtml}
     <span class="mini-score-wrap">
-      <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+      <span class="mini-score ${scoreClass}">${scoreTxt}</span>
       ${penaltyTxt}
     </span>
   </div>`;
@@ -1149,8 +1172,8 @@ function miniCard(g, byId, isFinal = false) {
   return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''} ${today&&!isFinal?'today':''}" data-match="${g.id}">
     ${liveBadge}
     <div class="mini-card-content">
-      ${miniRow(h, g.home_score, g.home_penalty_score, done)}
-      ${miniRow(a, g.away_score, g.away_penalty_score, done)}
+      ${miniRow(h, g.home_score, g.home_penalty_score, done, status.live)}
+      ${miniRow(a, g.away_score, g.away_penalty_score, done, status.live)}
     </div>
     <div class="mini-card-footer">${footerTxt}</div>
   </div>`;
@@ -1331,14 +1354,16 @@ function parseScorers(raw) {
   return matches.map(s => s.replace(/^["“]|["”]$/g, ''));
 }
 
-function modalTeamRow(g, side, byId, done) {
+function modalTeamRow(g, side, byId, done, inProgress) {
   const name = resolveLabel(g, side, byId);
   const pend = isPending(name);
   const flagCode = FLAGS[name];
   const displayFull = pend ? name : (TEAM_ES[name] || name);
   const score = side === 'h' ? g.home_score : g.away_score;
   const penalty = side === 'h' ? g.home_penalty_score : g.away_penalty_score;
-  const showScore = done && score !== null && score !== undefined && score !== 'null';
+  const hasScore = score !== null && score !== undefined && score !== 'null';
+  const showScore = (done || inProgress) && hasScore;
+  const scoreClass = inProgress && !done ? 'inprogress' : '';
   const espnTeam = getESPNTeam(name);
 
   // Logo: ESPN (mejor calidad) → flagcdn → nada
@@ -1360,7 +1385,7 @@ function modalTeamRow(g, side, byId, done) {
     <div class="modal-team-info">
       <span class="match-modal-team-name">${displayFull}</span>
     </div>
-    <span class="match-modal-team-score">${showScore ? score : '–'}${penHtml}</span>
+    <span class="match-modal-team-score ${scoreClass}">${showScore ? score : '–'}${penHtml}</span>
   </div>`;
 }
 
@@ -1427,9 +1452,9 @@ function buildMatchModal(g, byId) {
       <span class="match-modal-round">${roundLabel}</span>
       <button class="match-modal-close" id="match-modal-close-btn">✕</button>
     </div>
-    ${modalTeamRow(g, 'h', byId, done)}
+    ${modalTeamRow(g, 'h', byId, done, isLive)}
     <div class="match-modal-divider"></div>
-    ${modalTeamRow(g, 'a', byId, done)}
+    ${modalTeamRow(g, 'a', byId, done, isLive)}
     ${scorersHtml}
     ${stadiumHtml}
     ${tvHtml}
