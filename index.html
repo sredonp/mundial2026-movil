@@ -860,8 +860,10 @@ function fmtDate(s, stadiumId) {
   // Handle day overflow
   if (colH >= 24) { colH -= 24; colD++; }
   if (colH < 0)   { colH += 24; colD--; }
+  const ampm = colH >= 12 ? 'pm' : 'am';
+  const h12 = colH % 12 || 12;
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  return `${colD} ${months[parseInt(mo)-1]} ${pad(colH)}:${pad(mm)}h CO`;
+  return `${colD} ${months[parseInt(mo)-1]} ${h12}:${pad(mm)} ${ampm} CO`;
 }
 
 // Interpreta time_elapsed: 'notstarted', 'live', 'HT', 'FT', o un minuto ("23", "45+2", "90")
