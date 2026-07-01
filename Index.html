@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase Final Mundial 2026</title>
+
+  <!-- PWA: manifest, íconos y color de tema -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f12">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mundial 2026">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      background: #0a0e27;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      background-attachment: fixed;
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overscroll-behavior-y: none;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 5px;
+    }
+
+    .header .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .status-bar {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .dot.ok { background: #4caf50; }
+    .dot.loading { background: #ff9800; animation: pulse 1.5s infinite; }
+    .dot.err { background: #f44336; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .bracket-wrapper {
+      position: relative;
+      margin: 20px auto;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .bracket-container {
+      position: relative;
+      display: inline-block;
+      width: max-content;
+      padding: 20px;
+    }
+
+    /* ===== ÁRBOL VERTICAL (arriba/abajo, como la llave de referencia) ===== */
+    .bracket-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .connector-v {
+      width: 0;
+      height: 30px;
+      border-left: 2px solid #ffd700;
+      margin: 0 auto;
+    }
+
+    /* Mitad superior: las hojas quedan arriba y convergen HACIA ABAJO hasta la
+       semifinal (justo encima de la FINAL). Se construye el árbol normal
+       (raíz arriba) y se invierte verticalmente con scaleY(-1); el contenido
+       de cada tarjeta se vuelve a invertir para que se lea correctamente. */
+    .tree-wrap.flip {
+      transform: scaleY(-1);
+    }
+    .tree-wrap.flip .mini-card {
+      transform: scaleY(-1);
+    }
+
+    .tree-wrap {
+      display: inline-block;
+    }
+
+    .tree, .tree ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: inline-block;
+    }
+
+    .tree ul {
+      position: relative;
+      padding-top: 30px;
+    }
+    .tree ul::after {
+      content: "";
+      display: table;
+      clear: both;
+    }
+
+    .tree li {
+      float: left;
+      text-align: center;
+      list-style-type: none;
+      position: relative;
+      padding: 30px 8px 0 8px;
+    }
+
+    .tree li::before,
+    .tree li::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 50%;
+      width: 50%;
+      height: 30px;
+      border-top: 2px solid #4a9eff;
+    }
+    .tree li::after {
+      right: auto;
+      left: 50%;
+      border-left: 2px solid #4a9eff;
+    }
+    .tree li:only-child::after,
+    .tree li:only-child::before {
+      display: none;
+    }
+    .tree li:only-child { padding-top: 0; }
+    .tree li:first-child::before,
+    .tree li:last-child::after {
+      border: 0 none;
+    }
+    .tree li:last-child::before {
+      border-right: 2px solid #4a9eff;
+    }
+    .tree > li {
+      padding-top: 0;
+    }
+    .tree > li::before,
+    .tree > li::after {
+      display: none;
+    }
+    .tree li ul::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 0;
+      height: 30px;
+      border-left: 2px solid #4a9eff;
+    }
+
+    /* ===== CASILLAS ===== */
+    .mini-card {
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      margin: 0 auto;
+      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
+      border: 2px solid #4a9eff;
+      border-radius: 8px;
+      width: 105px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+    }
+
+    .mini-card:hover {
+      border-color: #ffd700;
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+      transform: scale(1.08);
+    }
+
+    .mini-card.done {
+      border-color: #4caf50;
+    }
+
+    .mini-card-live {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      background: #ff4444;
+      color: #fff;
+      font-size: 0.55rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 10px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 0 0 2px #0f1729;
+      animation: livePulse 1.4s infinite;
+      z-index: 2;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 0 rgba(255,68,68,0.6); }
+      50% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 5px rgba(255,68,68,0); }
+    }
+
+    .mini-card-header {
+      background: #0f1729;
+      padding: 2px 3px;
+      text-align: center;
+      font-size: 0.6rem;
+      color: #888;
+      border-bottom: 1px solid rgba(74, 158, 255, 0.3);
+    }
+
+    .mini-card-content {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    .mini-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 4px;
+      min-height: 48px;
+      border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+      position: relative;
+      flex: 1;
+      gap: 2px;
+    }
+
+    .mini-row:last-child {
+      border-bottom: none;
+    }
+
+    .mini-row:hover {
+      background: rgba(255, 215, 0, 0.05);
+    }
+
+    .mini-abbr {
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: #ffd700;
+      letter-spacing: 0.3px;
+    }
+
+    .mini-abbr.pending {
+      color: #888;
+    }
+
+    .mini-flag {
+      width: 28px;
+      height: 21px;
+      border-radius: 2px;
+      object-fit: cover;
+      background: #333;
+    }
+
+    .mini-flag-ph {
+      width: 28px;
+      height: 21px;
+      background: #444;
+      border-radius: 2px;
+    }
+
+    .mini-score-wrap {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.1;
+    }
+
+    .mini-score {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #4caf50;
+    }
+
+    .mini-score.live {
+      color: #4caf50;
+      font-size: 1rem;
+    }
+
+    .mini-score:not(.live) {
+      color: #888;
+    }
+
+    .penalty-text {
+      font-size: 0.55rem;
+      color: #ff9800;
+    }
+
+    .mini-penalty {
+      font-size: 0.6rem;
+      font-weight: normal;
+      color: #ff9800;
+    }
+
+    .mini-card-footer {
+      background: #0f1729;
+      padding: 4px 3px;
+      border-top: 3px solid #ff4444;
+      font-size: 0.55rem;
+      color: #888;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .mini-card.final {
+      border: 3px solid #ffd700;
+      width: 120px;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+
+    .trophy {
+      font-size: 3rem;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .final-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #ffd700;
+      text-transform: uppercase;
+    }
+
+    .center-final {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .final-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .final-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .third-place {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding-top: 22px;
+    }
+
+    .third-title {
+      font-size: 0.7rem;
+      color: #aaa;
+      font-weight: bold;
+    }
+
+    .error-msg {
+      background: #c82333;
+      border: 2px solid #f44336;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+      margin: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .bracket-container {
+        padding: 16px;
+      }
+
+      .tree li {
+        padding: 20px 4px 0 4px;
+      }
+
+      .tree li::before,
+      .tree li::after,
+      .tree li ul::before {
+        height: 20px;
+      }
+
+      .mini-card {
+        width: 78px;
+      }
+
+      .mini-card.final {
+        width: 88px;
+      }
+
+      .mini-card-header,
+      .mini-card-footer {
+        font-size: 0.5rem;
+        padding: 2px;
+      }
+
+      .mini-row {
+        min-height: 38px;
+        padding: 4px 3px;
+        gap: 1px;
+      }
+
+      .mini-abbr {
+        font-size: 0.6rem;
+      }
+
+      .mini-flag,
+      .mini-flag-ph {
+        width: 22px;
+        height: 16px;
+      }
+
+      .mini-score {
+        font-size: 0.75rem;
+      }
+
+      .mini-score.live {
+        font-size: 0.8rem;
+      }
+
+      .mini-penalty {
+        font-size: 0.55rem;
+      }
+
+      .connector-v {
+        height: 18px;
+      }
+
+      .trophy {
+        font-size: 2rem;
+      }
+
+      .final-row {
+        gap: 16px;
+      }
+
+      body {
+        padding: 10px;
+      }
+
+      .header h1 {
+        font-size: 1.4rem;
+      }
+
+      .header .subtitle {
+        font-size: 0.7rem;
+      }
+
+      .status-bar {
+        font-size: 0.7rem;
+        margin-bottom: 8px;
+      }
+    }
+    /* ===== CARTEL DE INSTALACIÓN (PWA) ===== */
+    .install-banner {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 999;
+      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
+      border: 2px solid #ffd700;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(120%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .install-banner .install-icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+    }
+
+    .install-banner .install-text {
+      flex: 1;
+      font-size: 0.8rem;
+      line-height: 1.3;
+      color: #fff;
+    }
+
+    .install-banner .install-text b {
+      color: #ffd700;
+    }
+
+    .install-banner .install-btn {
+      flex-shrink: 0;
+      background: #ffd700;
+      color: #0a0e27;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .install-banner .install-close {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+    }
+
+    @media (max-width: 480px) {
+      .install-banner {
+        flex-wrap: wrap;
+      }
+      .install-banner .install-text {
+        font-size: 0.75rem;
+      }
+    }
+    .mini-card.selected {
+      border-color: #ffd700;
+      box-shadow: 0 0 18px rgba(255, 215, 0, 0.7);
+      transform: scale(1.08);
+      z-index: 5;
+      position: relative;
+    }
+
+    /* ===== MODAL DE DETALLE DEL PARTIDO ===== */
+    .match-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(2px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .match-modal {
+      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
+      border: 2px solid #ffd700;
+      border-radius: 14px;
+      max-width: 360px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+      animation: modalPop 0.2s ease;
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .match-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .match-modal-round {
+      font-size: 0.75rem;
+      color: #ffd700;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .match-modal-close {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
+
+    .match-modal-team {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 4px;
+    }
+
+    .match-modal-team img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 3px;
+    }
+
+    .match-modal-team-name {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .match-modal-team-score {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #4caf50;
+    }
+
+    .match-modal-team-score .pen {
+      font-size: 0.85rem;
+      color: #ff9800;
+      margin-left: 4px;
+    }
+
+    .match-modal-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.15);
+      margin: 6px 0;
+    }
+
+    .match-modal-scorers {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+
+    .match-modal-scorers b {
+      color: #aaa;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .match-modal-scorers .scorer-line {
+      padding: 2px 0;
+    }
+
+    .match-modal-stadium {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #ccc;
+    }
+
+    .match-modal-stadium-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .match-modal-stadium-name {
+      font-weight: bold;
+      color: #fff;
+      font-size: 0.85rem;
+    }
+
+    .match-modal-stadium-city {
+      color: #aaa;
+      font-size: 0.75rem;
+    }
+
+    .match-modal-stadium-capacity {
+      margin-left: auto;
+      font-size: 0.7rem;
+      color: #888;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .match-modal-footer {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.15);
+      font-size: 0.75rem;
+      color: #999;
+      text-align: center;
+    }
+
+    .match-modal-footer .status-live {
+      color: #ff4444;
+      font-weight: bold;
+    }
+
+    /* ── Forma reciente (puntos W/L/D) ── */
+    .form-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+      margin-top: 3px;
+    }
+    .form-label {
+      font-size: 0.65rem;
+      color: #888;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    .form-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    /* ── Logo ESPN + info equipo ── */
+    .modal-team-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .modal-team-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* ── TV / Streaming ── */
+    .modal-tv {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-tv span {
+      color: #ddd;
+    }
+
+    /* ── Link ESPN ── */
+    .espn-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: #e8534a;
+      text-decoration: none;
+      font-weight: bold;
+      letter-spacing: 0.3px;
+    }
+    .espn-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚽ MUNDIAL 2026</h1>
+  <div class="subtitle">Fase Final · Datos en tiempo real · Colombia (UTC-5)</div>
+</div>
+
+<div id="install-banner" class="install-banner" style="display:none;"></div>
+
+<div id="match-modal-overlay" class="match-modal-overlay" style="display:none;"></div>
+
+<div class="status-bar">
+  <span class="dot ok" id="dot"></span>
+  <span id="st">Cargando...</span> · <span id="upd">--:--</span>
+</div>
+
+<div class="bracket-wrapper">
+  <div class="bracket-container">
+    <div class="bracket-content" id="bracket"></div>
+  </div>
+</div>
+
+<script>
+const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
+
+const FLAGS = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr','Czech Republic':'cz','Czechia':'cz',
+  'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
+  'Turkey':'tr','Türkiye':'tr',
+  'Germany':'de','Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec',
+  'Curaçao':'cw','Curacao':'cw',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Cape Verde':'cv','Uruguay':'uy','Saudi Arabia':'sa',
+  'France':'fr','Norway':'no','Senegal':'sn','Iraq':'iq',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','DR Congo':'cd','Democratic Republic of the Congo':'cd',
+  'Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
+};
+
+const TEAM_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur','Czech Republic':'Chequia','Czechia':'Chequia',
+  'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
+  'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
+  'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
+  'Turkey':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania','Ivory Coast':'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador',
+  'Curaçao':'Curazao','Curacao':'Curazao',
+  'Netherlands':'Holanda','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Cape Verde':'Cabo Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita',
+  'France':'Francia','Norway':'Noruega','Senegal':'Senegal','Iraq':'Irak',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'RD Congo','Democratic Republic of the Congo':'RD Congo',
+  'Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
+};
+
+const ABBR_ES = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR','Czech Republic':'CZE','Czechia':'CZE',
+  'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
+  'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
+  'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
+  'Turkey':'TUR','Türkiye':'TUR',
+  'Germany':'GER','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Curaçao':'CUW','Curacao':'CUW',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA',
+  'France':'FRA','Norway':'NOR','Senegal':'SEN','Iraq':'IRQ',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
+  'Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+// ── ESPN enrichment ─────────────────────────────────────────────────────────
+const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+
+// Persisten entre refreshes para ir acumulando todos los equipos vistos
+if (!window._espnTeams)   window._espnTeams   = {}; // abbr → { color, altColor, logo, form }
+if (!window._espnMatches) window._espnMatches = {}; // "HOMEabbr-AWAYabbr" → { utcDate, state, displayClock, broadcasts, link }
+
+function getESPNTeam(name) {
+  const abbr = ABBR_ES[name] || name;
+  return window._espnTeams[abbr] || null;
+}
+
+function getESPNMatch(g) {
+  const hA = ABBR_ES[g.home_team_name_en];
+  const aA = ABBR_ES[g.away_team_name_en];
+  if (!hA || !aA) return null;
+  return window._espnMatches[`${hA}-${aA}`] || null;
+}
+
+function formDots(form) {
+  if (!form) return '';
+  const dots = form.split('').map(c => {
+    const col = c === 'W' ? '#4caf50' : c === 'L' ? '#f44336' : '#aaa';
+    const title = c === 'W' ? 'Victoria' : c === 'L' ? 'Derrota' : 'Empate';
+    return `<span class="form-dot" style="background:${col}" title="${title}"></span>`;
+  }).join('');
+  return `<span class="form-dots"><span class="form-label">Últ. 5:</span>${dots}</span>`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STADIUMS = {
+  '1':  { name: 'Estadio Azteca', city: 'Ciudad de México', country: 'México', capacity: 83000 },
+  '2':  { name: 'Estadio Akron', city: 'Guadalajara (Zapopan)', country: 'México', capacity: 48000 },
+  '3':  { name: 'Estadio BBVA', city: 'Monterrey (Guadalupe)', country: 'México', capacity: 53500 },
+  '4':  { name: 'AT&T Stadium', city: 'Dallas (Arlington)', country: 'Estados Unidos', capacity: 94000 },
+  '5':  { name: 'NRG Stadium', city: 'Houston', country: 'Estados Unidos', capacity: 72000 },
+  '6':  { name: 'GEHA Field at Arrowhead Stadium', city: 'Kansas City', country: 'Estados Unidos', capacity: 73000 },
+  '7':  { name: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'Estados Unidos', capacity: 75000 },
+  '8':  { name: 'Hard Rock Stadium', city: 'Miami (Miami Gardens)', country: 'Estados Unidos', capacity: 65000 },
+  '9':  { name: 'Gillette Stadium', city: 'Boston (Foxborough)', country: 'Estados Unidos', capacity: 65000 },
+  '10': { name: 'Lincoln Financial Field', city: 'Filadelfia', country: 'Estados Unidos', capacity: 69000 },
+  '11': { name: 'MetLife Stadium', city: 'Nueva York / Nueva Jersey (East Rutherford)', country: 'Estados Unidos', capacity: 82500 },
+  '12': { name: 'BMO Field', city: 'Toronto', country: 'Canadá', capacity: 45000 },
+  '13': { name: 'BC Place', city: 'Vancouver', country: 'Canadá', capacity: 54000 },
+  '14': { name: 'Lumen Field', city: 'Seattle', country: 'Estados Unidos', capacity: 69000 },
+  '15': { name: "Levi's Stadium", city: 'San Francisco Bay Area (Santa Clara)', country: 'Estados Unidos', capacity: 71000 },
+  '16': { name: 'SoFi Stadium', city: 'Los Ángeles (Inglewood)', country: 'Estados Unidos', capacity: 70000 },
+};
+
+const pad = n => String(n).padStart(2,'0');
+
+// UTC offset de cada estadio durante junio-julio (DST activo en USA/Canadá)
+const STADIUM_UTC = {
+  '1': -6, '2': -6, '3': -6,      // México (sin DST desde 2023)
+  '4': -5, '5': -5, '6': -5,      // Dallas, Houston, Kansas City (CDT)
+  '7': -4, '8': -4, '9': -4,      // Atlanta, Miami, Boston (EDT)
+  '10': -4, '11': -4, '12': -4,   // Philadelphia, MetLife, Toronto (EDT)
+  '13': -7, '14': -7, '15': -7,   // Vancouver, Seattle, San Francisco (PDT)
+  '16': -7,                        // Los Ángeles (PDT)
+};
+
+// Si tenemos fecha UTC de ESPN la usamos directamente (precisa, sin offset manual).
+// Fallback: lógica existente con STADIUM_UTC.
+function fmtDate(s, stadiumId, utcDate) {
+  let d;
+  if (utcDate) {
+    d = new Date(utcDate);
+  } else {
+    if (!s) return '';
+    const [dp, tp] = s.split(' ');
+    const [mo, dd, yy] = dp.split('/');
+    const [hh, mm] = tp.split(':').map(Number);
+    const venueOffset = STADIUM_UTC[String(stadiumId)] ?? -5;
+    const utcMs = Date.UTC(+yy, +mo - 1, +dd, hh - venueOffset, mm);
+    d = new Date(utcMs - 5 * 3600000); // → Colombia UTC-5
+    const ampm = d.getUTCHours() >= 12 ? 'pm' : 'am';
+    const h12 = d.getUTCHours() % 12 || 12;
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${h12}:${pad(d.getUTCMinutes())} ${ampm} CO`;
+  }
+  // Usar Intl para convertir UTC → Colombia
+  const opts = { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true };
+  const parts = new Intl.DateTimeFormat('es-CO', opts).formatToParts(d);
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return `${get('day')} ${get('month')} ${get('hour')}:${get('minute')} ${get('dayPeriod')} CO`;
+}
+
+// Interpreta time_elapsed. Prioriza datos ESPN si están disponibles.
+function matchStatus(g) {
+  const espn = getESPNMatch(g);
+  if (espn) {
+    if (espn.completed || espn.state === 'post') return { label: 'Finalizado', short: 'FIN', live: false };
+    if (espn.state === 'in') {
+      const clk = espn.displayClock || 'VIVO';
+      return { label: clk, short: clk, live: true };
+    }
+    if (espn.state === 'pre') return { label: 'Por jugar', short: '', live: false };
+  }
+  // Fallback al campo local
+  const te = (g.time_elapsed || '').toString().trim();
+  if (g.finished === 'TRUE' || te === 'FT') return { label: 'Finalizado', short: 'FIN', live: false };
+  if (te === 'HT') return { label: 'Descanso', short: 'DT', live: true };
+  if (te === 'live') return { label: 'En vivo', short: 'VIVO', live: true };
+  if (!te || te === 'notstarted') return { label: 'Por jugar', short: '', live: false };
+  if (/^\d+(\+\d+)?$/.test(te)) return { label: `${te}'`, short: `${te}'`, live: true };
+  return { label: te, short: te, live: false };
+}
+
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m = name?.match(/^Gan\. #(\d+)$/);
+    if (m) return `G${m[1]}`;
+    m = name?.match(/^Per\. #(\d+)$/);
+    if (m) return `P${m[1]}`;
+    m = name?.match(/^1\.° Grupo ([A-L])$/);
+    if (m) return `1°${m[1]}`;
+    m = name?.match(/^2\.° Grupo ([A-L])$/);
+    if (m) return `2°${m[1]}`;
+    if (name?.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
+}
+
+function isPending(name) {
+  return !name || name.startsWith('Gan.') || name.startsWith('Per.') || name.startsWith('1.°') || name.startsWith('2.°') || name.startsWith('Mejor');
+}
+
+function resolveLabel(g, side, byId, visited) {
+  visited = visited || new Set();
+  const id = side === 'h' ? g.home_team_id : g.away_team_id;
+  const nm = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label : g.away_team_label;
+
+  if (id && id !== '0' && nm) return nm;
+  if (!lbl) return '–';
+  
+  let m;
+  m = lbl.match(/^Winner Group ([A-L])$/);
+  if (m) return `1.° Grupo ${m[1]}`;
+  m = lbl.match(/^Runner-up Group ([A-L])$/);
+  if (m) return `2.° Grupo ${m[1]}`;
+  m = lbl.match(/^3rd Group ([A-L/]+)$/);
+  if (m) return `Mejor 3.° (${m[1]})`;
+  m = lbl.match(/^Winner Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], true, byId, visited) || `Gan. #${m[1]}`;
+  m = lbl.match(/^Loser Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], false, byId, visited) || `Per. #${m[1]}`;
+  return lbl;
+}
+
+function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
+  if (!byId || visited.has(matchId)) return null;
+  visited.add(matchId);
+  const g = byId[String(matchId)];
+  if (!g || g.finished !== 'TRUE') return null;
+  const hs = parseFloat(g.home_score);
+  const as = parseFloat(g.away_score);
+  if (isNaN(hs) || isNaN(as) || hs === as) return null;
+  const homeAdvances = wantWinner ? hs > as : hs < as;
+  return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
+}
+
+function miniRow(name, score, penalty, done) {
+  const pend = isPending(name);
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : (TEAM_ES[name] || name);
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/32x24/${flagCode}.png" alt="${displayFull}" class="mini-flag" onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
+    : `<span class="mini-flag-ph"></span>`;
+  
+  const live = done && score !== null && score !== undefined && score !== 'null';
+  const scoreTxt = live ? score : '–';
+  const penaltyTxt = penalty !== null && penalty !== undefined && penalty !== '' && penalty !== 'null' && live
+    ? `<span class="mini-penalty">(${penalty})</span>`
+    : '';
+
+  return `<div class="mini-row" title="${displayFull}">
+    <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
+    ${flagHtml}
+    <span class="mini-score-wrap">
+      <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+      ${penaltyTxt}
+    </span>
+  </div>`;
+}
+
+function miniCard(g, byId, isFinal = false) {
+  if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
+
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g, 'h', byId);
+  const a = resolveLabel(g, 'a', byId);
+  const status = matchStatus(g);
+  const liveBadge = status.live ? `<div class="mini-card-live">${status.short || '●'}</div>` : '';
+
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+    ${liveBadge}
+    <div class="mini-card-content">
+      ${miniRow(h, g.home_score, g.home_penalty_score, done)}
+      ${miniRow(a, g.away_score, g.away_penalty_score, done)}
+    </div>
+    <div class="mini-card-footer">${fmtDate(g.local_date, g.stadium_id, g._utcDate)}</div>
+  </div>`;
+}
+
+// Cada nivel va de hojas (1/16) hacia la raíz (semifinal). Los pares
+// consecutivos del nivel inferior alimentan cada partido del nivel superior:
+// levels[0][0],levels[0][1] -> levels[1][0]; levels[0][2],levels[0][3] -> levels[1][1]; etc.
+const UPPER_LEVELS = [
+  ['74', '77', '73', '75', '83', '84', '81', '82'], // 1/16
+  ['89', '90', '93', '94'],                          // octavos
+  ['97', '98'],                                      // cuartos
+  ['101'],                                           // semifinal
+];
+
+const LOWER_LEVELS = [
+  ['76', '78', '79', '80', '86', '88', '85', '87'], // 1/16
+  ['91', '92', '95', '96'],                          // octavos
+  ['99', '100'],                                     // cuartos
+  ['102'],                                           // semifinal
+];
+
+function buildTreeNode(levels, byId, level, idx) {
+  const id = levels[level][idx];
+  const card = miniCard(byId[id], byId);
+  if (level === 0) {
+    return `<li>${card}</li>`;
+  }
+  const left = buildTreeNode(levels, byId, level - 1, idx * 2);
+  const right = buildTreeNode(levels, byId, level - 1, idx * 2 + 1);
+  return `<li>${card}<ul>${left}${right}</ul></li>`;
+}
+
+function buildHalfTree(levels, byId, flip) {
+  const root = buildTreeNode(levels, byId, levels.length - 1, 0);
+  return `<div class="tree-wrap ${flip ? 'flip' : ''}"><ul class="tree">${root}</ul></div>`;
+}
+
+function buildBracket(games) {
+  const byId = {};
+  games.forEach(g => {
+    byId[String(g.id)] = g;
+    // Enrich con ESPN si hay datos disponibles
+    const em = getESPNMatch(g);
+    if (em) {
+      g._utcDate    = em.utcDate;
+      g._espnMatch  = em;
+    }
+  });
+
+  // Mitad superior: hojas arriba, convergiendo HACIA ABAJO hasta la semifinal
+  // (justo encima de la final), igual que en la imagen de referencia.
+  let html = buildHalfTree(UPPER_LEVELS, byId, true);
+
+  html += `<div class="connector-v"></div>`;
+
+  // FINAL EN EL CENTRO
+  const final = byId['104'];
+  const third = byId['103'];
+
+  html += `<div class="center-final">
+    <div class="trophy">🏆</div>
+    <div class="final-row">
+      <div class="final-block">
+        <div class="final-title">Final</div>
+        ${final ? miniCard(final, byId, true) : '<div class="mini-card final" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+      <div class="third-place">
+        <div class="third-title">3er Puesto</div>
+        ${third ? miniCard(third, byId) : '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+    </div>
+  </div>`;
+
+  html += `<div class="connector-v"></div>`;
+
+  // Mitad inferior: semifinal arriba (debajo de la final), expandiéndose
+  // HACIA ABAJO hasta las hojas (1/16).
+  html += buildHalfTree(LOWER_LEVELS, byId, false);
+
+  document.getElementById('bracket').innerHTML = html;
+  window._byId = byId;
+}
+
+async function fetchESPN() {
+  try {
+    const res = await fetch(ESPN_SCOREBOARD);
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const event of (data.events || [])) {
+      const comp = event.competitions?.[0];
+      if (!comp) continue;
+      const competitors = comp.competitors || [];
+      const home = competitors.find(c => c.homeAway === 'home');
+      const away = competitors.find(c => c.homeAway === 'away');
+
+      // Acumular datos de equipo
+      for (const c of competitors) {
+        const abbr = c.team?.abbreviation;
+        if (abbr && !window._espnTeams[abbr]) {
+          window._espnTeams[abbr] = {
+            color:    c.team.color    || null,
+            altColor: c.team.alternateColor || null,
+            logo:     c.team.logo     || null,
+            form:     c.form          || null,
+          };
+        }
+      }
+
+      // Datos del partido
+      if (home && away) {
+        const key = `${home.team?.abbreviation}-${away.team?.abbreviation}`;
+        const st = comp.status || {};
+        const broadcasts = comp.broadcasts?.[0]?.names || [];
+        const link = event.links?.find(l => l.rel?.includes('summary'))?.href || null;
+        window._espnMatches[key] = {
+          espnId:       event.id,
+          utcDate:      event.date,
+          state:        st.type?.state,
+          completed:    st.type?.completed,
+          displayClock: st.displayClock,
+          broadcasts,
+          link,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('ESPN API:', e.message);
+  }
+}
+
+async function load() {
+  document.getElementById('dot').className = 'dot loading';
+  document.getElementById('st').textContent = 'Actualizando…';
+  try {
+    const [res] = await Promise.all([
+      fetch(`${PROXY}?proxy=games`),
+      fetchESPN(),
+    ]);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const games = Array.isArray(data) ? data : (data.games || []);
+    if (!games.length) throw new Error('Sin partidos en la respuesta');
+
+    buildBracket(games);
+    document.getElementById('dot').className = 'dot ok';
+    document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
+
+    const now = new Date();
+    document.getElementById('upd').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('bracket').innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
+    document.getElementById('dot').className = 'dot err';
+    document.getElementById('st').textContent = 'Error al cargar';
+  }
+}
+
+load();
+setInterval(load, 120000);
+
+// ===== Click en una tarjeta: marcarla en amarillo + mostrar ficha ampliada =====
+const ROUND_NAMES = {
+  group: 'Fase de Grupos',
+  r32: 'Dieciseisavos · 1/16',
+  r16: 'Octavos de Final',
+  qf: 'Cuartos de Final',
+  sf: 'Semifinal',
+  third: 'Tercer Puesto',
+  final: 'Final',
+};
+
+function parseScorers(raw) {
+  if (!raw || raw === 'null') return [];
+  const matches = raw.match(/["“]([^"”]+)["”]/g) || [];
+  return matches.map(s => s.replace(/^["“]|["”]$/g, ''));
+}
+
+function modalTeamRow(g, side, byId, done) {
+  const name = resolveLabel(g, side, byId);
+  const pend = isPending(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : (TEAM_ES[name] || name);
+  const score = side === 'h' ? g.home_score : g.away_score;
+  const penalty = side === 'h' ? g.home_penalty_score : g.away_penalty_score;
+  const showScore = done && score !== null && score !== undefined && score !== 'null';
+  const espnTeam = getESPNTeam(name);
+
+  // Logo: ESPN (mejor calidad) → flagcdn → nada
+  let imgHtml = '';
+  if (!pend) {
+    if (espnTeam?.logo) {
+      imgHtml = `<img src="${espnTeam.logo}" alt="${displayFull}" class="modal-team-logo" onerror="this.src='https://flagcdn.com/64x48/${flagCode||'xx'}.png'">`;
+    } else if (flagCode) {
+      imgHtml = `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" class="modal-team-logo" onerror="this.style.display='none'">`;
+    }
+  }
+
+  const penHtml = (penalty && penalty !== 'null' && showScore) ? `<span class="pen">(${penalty})</span>` : '';
+  const formHtml = espnTeam?.form ? formDots(espnTeam.form) : '';
+  const colorStrip = espnTeam?.color ? `style="border-left: 3px solid #${espnTeam.color}"` : '';
+
+  return `<div class="match-modal-team" ${colorStrip}>
+    ${imgHtml}
+    <div class="modal-team-info">
+      <span class="match-modal-team-name">${displayFull}</span>
+    </div>
+    <span class="match-modal-team-score">${showScore ? score : '–'}${penHtml}</span>
+  </div>`;
+}
+
+function buildMatchModal(g, byId) {
+  const done = g.finished === 'TRUE';
+  const roundLabel = ROUND_NAMES[g.type] || g.group || '';
+  const homeScorers = parseScorers(g.home_scorers);
+  const awayScorers = parseScorers(g.away_scorers);
+  const hName = resolveLabel(g, 'h', byId);
+  const aName = resolveLabel(g, 'a', byId);
+  const status = matchStatus(g);
+  const isLive = status.live;
+
+  // Gradiente del header con colores ESPN
+  const hTeam = getESPNTeam(hName);
+  const aTeam = getESPNTeam(aName);
+  const hCol = hTeam?.color ? `#${hTeam.color}` : '1a2a4a';
+  const aCol = aTeam?.color ? `#${aTeam.color}` : '1a2a4a';
+  const headerGrad = `background: linear-gradient(135deg, #${hCol}cc 0%, #0f172980 50%, #${aCol}cc 100%);`;
+
+  // Goles (rojos si partido en curso)
+  let scorersHtml = '';
+  if (homeScorers.length || awayScorers.length) {
+    const goalIcon = isLive ? '🔴' : '⚽';
+    const scorerStyle = isLive ? 'color:#ff5555;font-weight:bold;' : '';
+    scorersHtml = `<div class="match-modal-scorers">
+      <b>${isLive ? '<span style="color:#ff5555">⚡ En curso</span>' : 'Goles'}</b>
+      ${homeScorers.map(s => `<div class="scorer-line" style="${scorerStyle}">${goalIcon} ${s} <span style="color:#777">(${TEAM_ES[hName] || hName})</span></div>`).join('')}
+      ${awayScorers.map(s => `<div class="scorer-line" style="${scorerStyle}">${goalIcon} ${s} <span style="color:#777">(${TEAM_ES[aName] || aName})</span></div>`).join('')}
+    </div>`;
+  }
+
+  // Estadio
+  const stadium = STADIUMS[String(g.stadium_id)];
+  const stadiumHtml = stadium
+    ? `<div class="match-modal-stadium">
+        <span class="match-modal-stadium-icon">🏟️</span>
+        <div>
+          <div class="match-modal-stadium-name">${stadium.name}</div>
+          <div class="match-modal-stadium-city">${stadium.city}, ${stadium.country}</div>
+        </div>
+        <span class="match-modal-stadium-capacity">${stadium.capacity.toLocaleString('es')} 👥</span>
+      </div>`
+    : '';
+
+  // TV / Streaming desde ESPN
+  const em = g._espnMatch;
+  const tvHtml = em?.broadcasts?.length
+    ? `<div class="modal-tv">📺 <span>${em.broadcasts.join(' · ')}</span></div>`
+    : '';
+
+  // Link directo a ESPN
+  const espnLinkHtml = em?.link
+    ? `<a href="${em.link}" target="_blank" rel="noopener" class="espn-link">Ver en ESPN →</a>`
+    : '';
+
+  return `<div class="match-modal">
+    <div class="match-modal-header" style="${headerGrad}">
+      <span class="match-modal-round">${roundLabel}</span>
+      <button class="match-modal-close" id="match-modal-close-btn">✕</button>
+    </div>
+    ${modalTeamRow(g, 'h', byId, done)}
+    <div class="match-modal-divider"></div>
+    ${modalTeamRow(g, 'a', byId, done)}
+    ${scorersHtml}
+    ${stadiumHtml}
+    ${tvHtml}
+    <div class="match-modal-footer">
+      ${fmtDate(g.local_date, g.stadium_id, g._utcDate)} · <span class="${isLive ? 'status-live' : ''}">${status.label}</span>
+    </div>
+  </div>`;
+}
+
+(function setupMatchClicks() {
+  const bracket = document.getElementById('bracket');
+  const overlay = document.getElementById('match-modal-overlay');
+  let selectedCard = null;
+
+  function closeModal() {
+    overlay.style.display = 'none';
+    overlay.innerHTML = '';
+  }
+
+  bracket.addEventListener('click', (e) => {
+    const card = e.target.closest('.mini-card[data-match]');
+    if (!card) return;
+
+    if (selectedCard) selectedCard.classList.remove('selected');
+    card.classList.add('selected');
+    selectedCard = card;
+
+    const byId = window._byId || {};
+    const g = byId[card.getAttribute('data-match')];
+    if (!g) return;
+
+    overlay.innerHTML = buildMatchModal(g, byId);
+    overlay.style.display = 'flex';
+    document.getElementById('match-modal-close-btn').addEventListener('click', closeModal);
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+})();
+
+// ===== PWA: Service Worker + Cartel de instalación =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
+  });
+}
+
+(function setupInstallBanner() {
+  const STORAGE_KEY = 'mundial2026_install_dismissed';
+  const banner = document.getElementById('install-banner');
+
+  // Si ya está instalada (abierta como app) o el usuario ya cerró el cartel, no mostrar nada
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone || localStorage.getItem(STORAGE_KEY) === '1') return;
+
+  const ua = window.navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+
+  let deferredPrompt = null;
+
+  function dismiss() {
+    banner.style.display = 'none';
+    localStorage.setItem(STORAGE_KEY, '1');
+  }
+
+  function showBanner(html) {
+    banner.innerHTML = html;
+    banner.style.display = 'flex';
+    const closeBtn = document.getElementById('install-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', dismiss);
+  }
+
+  // Android / Chrome: esperar el evento nativo de instalación
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Accede más rápido desde tu pantalla de inicio.</span>
+        <button class="install-btn" id="install-action-btn">Instalar</button>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+      const actionBtn = document.getElementById('install-action-btn');
+      if (actionBtn) {
+        actionBtn.addEventListener('click', async () => {
+          banner.style.display = 'none';
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+          }
+          localStorage.setItem(STORAGE_KEY, '1');
+        });
+      }
+    }, 1500);
+  });
+
+  // iPhone/iPad en Safari: no existe instalación automática, mostrar instrucciones
+  if (isIOS && isSafari) {
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Toca <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b>.</span>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+    }, 1500);
+  }
+})();
+</script>
+
+</body>
+</html>
