@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -735,3 +737,521 @@
     }
   </style>
 </head>
+<body>
+
+<div class="header">
+  <h1>⚽ MUNDIAL 2026</h1>
+  <div class="subtitle">Fase Final · Datos en tiempo real · Colombia (UTC-5)</div>
+</div>
+
+<div id="install-banner" class="install-banner" style="display:none;"></div>
+
+<div id="match-modal-overlay" class="match-modal-overlay" style="display:none;"></div>
+
+<div class="status-bar">
+  <span class="dot ok" id="dot"></span>
+  <span id="st">Cargando...</span> · <span id="upd">--:--</span>
+</div>
+
+<div class="bracket-wrapper">
+  <div class="bracket-container">
+    <div class="bracket-content" id="bracket"></div>
+  </div>
+</div>
+
+<script>
+const PROXY = "https://script.google.com/macros/s/AKfycby9V6YTOZcWTUD9NtmlFhgJTuIjkdREBGEfyrjSy8FLRvWrARBJn68JKTjVfzmLClkIEA/exec";
+
+const FLAGS = {
+  'Mexico':'mx','South Africa':'za','South Korea':'kr','Korea Republic':'kr','Czech Republic':'cz','Czechia':'cz',
+  'Switzerland':'ch','Canada':'ca','Bosnia and Herzegovina':'ba','Bosnia':'ba','Qatar':'qa',
+  'Brazil':'br','Morocco':'ma','Scotland':'gb-sct','Haiti':'ht',
+  'United States':'us','USA':'us','Australia':'au','Paraguay':'py',
+  'Turkey':'tr','Türkiye':'tr',
+  'Germany':'de','Ivory Coast':'ci',"Côte d'Ivoire":'ci','Ecuador':'ec',
+  'Curaçao':'cw','Curacao':'cw',
+  'Netherlands':'nl','Japan':'jp','Sweden':'se','Tunisia':'tn',
+  'Belgium':'be','Egypt':'eg','Iran':'ir','New Zealand':'nz',
+  'Spain':'es','Cape Verde':'cv','Uruguay':'uy','Saudi Arabia':'sa',
+  'France':'fr','Norway':'no','Senegal':'sn','Iraq':'iq',
+  'Argentina':'ar','Algeria':'dz','Austria':'at','Jordan':'jo',
+  'Portugal':'pt','DR Congo':'cd','Democratic Republic of the Congo':'cd',
+  'Uzbekistan':'uz','Colombia':'co',
+  'England':'gb-eng','Croatia':'hr','Ghana':'gh','Panama':'pa',
+};
+
+const TEAM_ES = {
+  'Mexico':'México','South Africa':'Sudáfrica','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur','Czech Republic':'Chequia','Czechia':'Chequia',
+  'Switzerland':'Suiza','Canada':'Canadá','Bosnia and Herzegovina':'Bosnia','Bosnia':'Bosnia','Qatar':'Qatar',
+  'Brazil':'Brasil','Morocco':'Marruecos','Scotland':'Escocia','Haiti':'Haití',
+  'United States':'EE. UU.','USA':'EE. UU.','Australia':'Australia','Paraguay':'Paraguay',
+  'Turkey':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania','Ivory Coast':'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador',
+  'Curaçao':'Curazao','Curacao':'Curazao',
+  'Netherlands':'Holanda','Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez',
+  'Belgium':'Bélgica','Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda',
+  'Spain':'España','Cape Verde':'Cabo Verde','Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita',
+  'France':'Francia','Norway':'Noruega','Senegal':'Senegal','Iraq':'Irak',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'RD Congo','Democratic Republic of the Congo':'RD Congo',
+  'Uzbekistan':'Uzbekistán','Colombia':'Colombia',
+  'England':'Inglaterra','Croatia':'Croacia','Ghana':'Ghana','Panama':'Panamá',
+};
+
+const ABBR_ES = {
+  'Mexico':'MEX','South Africa':'RSA','South Korea':'KOR','Korea Republic':'KOR','Czech Republic':'CZE','Czechia':'CZE',
+  'Switzerland':'SUI','Canada':'CAN','Bosnia and Herzegovina':'BIH','Bosnia':'BIH','Qatar':'QAT',
+  'Brazil':'BRA','Morocco':'MAR','Scotland':'SCO','Haiti':'HAI',
+  'United States':'USA','USA':'USA','Australia':'AUS','Paraguay':'PAR',
+  'Turkey':'TUR','Türkiye':'TUR',
+  'Germany':'GER','Ivory Coast':'CIV',"Côte d'Ivoire":'CIV','Ecuador':'ECU',
+  'Curaçao':'CUW','Curacao':'CUW',
+  'Netherlands':'NED','Japan':'JPN','Sweden':'SWE','Tunisia':'TUN',
+  'Belgium':'BEL','Egypt':'EGY','Iran':'IRN','New Zealand':'NZL',
+  'Spain':'ESP','Cape Verde':'CPV','Uruguay':'URU','Saudi Arabia':'KSA',
+  'France':'FRA','Norway':'NOR','Senegal':'SEN','Iraq':'IRQ',
+  'Argentina':'ARG','Algeria':'ALG','Austria':'AUT','Jordan':'JOR',
+  'Portugal':'POR','DR Congo':'COD','Democratic Republic of the Congo':'COD',
+  'Uzbekistan':'UZB','Colombia':'COL',
+  'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
+};
+
+const STADIUMS = {
+  '1':  { name: 'Estadio Azteca', city: 'Ciudad de México', country: 'México', capacity: 83000 },
+  '2':  { name: 'Estadio Akron', city: 'Guadalajara (Zapopan)', country: 'México', capacity: 48000 },
+  '3':  { name: 'Estadio BBVA', city: 'Monterrey (Guadalupe)', country: 'México', capacity: 53500 },
+  '4':  { name: 'AT&T Stadium', city: 'Dallas (Arlington)', country: 'Estados Unidos', capacity: 94000 },
+  '5':  { name: 'NRG Stadium', city: 'Houston', country: 'Estados Unidos', capacity: 72000 },
+  '6':  { name: 'GEHA Field at Arrowhead Stadium', city: 'Kansas City', country: 'Estados Unidos', capacity: 73000 },
+  '7':  { name: 'Mercedes-Benz Stadium', city: 'Atlanta', country: 'Estados Unidos', capacity: 75000 },
+  '8':  { name: 'Hard Rock Stadium', city: 'Miami (Miami Gardens)', country: 'Estados Unidos', capacity: 65000 },
+  '9':  { name: 'Gillette Stadium', city: 'Boston (Foxborough)', country: 'Estados Unidos', capacity: 65000 },
+  '10': { name: 'Lincoln Financial Field', city: 'Filadelfia', country: 'Estados Unidos', capacity: 69000 },
+  '11': { name: 'MetLife Stadium', city: 'Nueva York / Nueva Jersey (East Rutherford)', country: 'Estados Unidos', capacity: 82500 },
+  '12': { name: 'BMO Field', city: 'Toronto', country: 'Canadá', capacity: 45000 },
+  '13': { name: 'BC Place', city: 'Vancouver', country: 'Canadá', capacity: 54000 },
+  '14': { name: 'Lumen Field', city: 'Seattle', country: 'Estados Unidos', capacity: 69000 },
+  '15': { name: "Levi's Stadium", city: 'San Francisco Bay Area (Santa Clara)', country: 'Estados Unidos', capacity: 71000 },
+  '16': { name: 'SoFi Stadium', city: 'Los Ángeles (Inglewood)', country: 'Estados Unidos', capacity: 70000 },
+};
+
+const pad = n => String(n).padStart(2,'0');
+
+function fmtDate(s) {
+  if (!s) return '';
+  const [dp, tp] = s.split(' ');
+  const [mo,dd,yy] = dp.split('/');
+  const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
+  return `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+}
+
+// Interpreta time_elapsed: 'notstarted', 'live', 'HT', 'FT', o un minuto ("23", "45+2", "90")
+function matchStatus(g) {
+  const te = (g.time_elapsed || '').toString().trim();
+
+  if (g.finished === 'TRUE' || te === 'FT') {
+    return { label: 'Finalizado', short: 'FIN', live: false };
+  }
+  if (te === 'HT') {
+    return { label: 'Descanso', short: 'DT', live: true };
+  }
+  if (te === 'live') {
+    return { label: 'En vivo', short: 'VIVO', live: true };
+  }
+  if (!te || te === 'notstarted') {
+    return { label: 'Por jugar', short: '', live: false };
+  }
+  // Minuto numérico (puede traer sufijo de descuento, ej. "45+2")
+  if (/^\d+(\+\d+)?$/.test(te)) {
+    return { label: `${te}'`, short: `${te}'`, live: true };
+  }
+  // Fallback: mostrar el valor tal cual
+  return { label: te, short: te, live: false };
+}
+
+function getAbbr(name) {
+  if (isPending(name)) {
+    let m = name?.match(/^Gan\. #(\d+)$/);
+    if (m) return `G${m[1]}`;
+    m = name?.match(/^Per\. #(\d+)$/);
+    if (m) return `P${m[1]}`;
+    m = name?.match(/^1\.° Grupo ([A-L])$/);
+    if (m) return `1°${m[1]}`;
+    m = name?.match(/^2\.° Grupo ([A-L])$/);
+    if (m) return `2°${m[1]}`;
+    if (name?.startsWith('Mejor')) return '3°';
+    return '?';
+  }
+  return ABBR_ES[name] || (name ? name.slice(0,3).toUpperCase() : '?');
+}
+
+function isPending(name) {
+  return !name || name.startsWith('Gan.') || name.startsWith('Per.') || name.startsWith('1.°') || name.startsWith('2.°') || name.startsWith('Mejor');
+}
+
+function resolveLabel(g, side, byId, visited) {
+  visited = visited || new Set();
+  const id = side === 'h' ? g.home_team_id : g.away_team_id;
+  const nm = side === 'h' ? g.home_team_name_en : g.away_team_name_en;
+  const lbl = side === 'h' ? g.home_team_label : g.away_team_label;
+
+  if (id && id !== '0' && nm) return nm;
+  if (!lbl) return '–';
+  
+  let m;
+  m = lbl.match(/^Winner Group ([A-L])$/);
+  if (m) return `1.° Grupo ${m[1]}`;
+  m = lbl.match(/^Runner-up Group ([A-L])$/);
+  if (m) return `2.° Grupo ${m[1]}`;
+  m = lbl.match(/^3rd Group ([A-L/]+)$/);
+  if (m) return `Mejor 3.° (${m[1]})`;
+  m = lbl.match(/^Winner Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], true, byId, visited) || `Gan. #${m[1]}`;
+  m = lbl.match(/^Loser Match (\d+)$/);
+  if (m) return resolveAdvancingTeam(m[1], false, byId, visited) || `Per. #${m[1]}`;
+  return lbl;
+}
+
+function resolveAdvancingTeam(matchId, wantWinner, byId, visited) {
+  if (!byId || visited.has(matchId)) return null;
+  visited.add(matchId);
+  const g = byId[String(matchId)];
+  if (!g || g.finished !== 'TRUE') return null;
+  const hs = parseFloat(g.home_score);
+  const as = parseFloat(g.away_score);
+  if (isNaN(hs) || isNaN(as) || hs === as) return null;
+  const homeAdvances = wantWinner ? hs > as : hs < as;
+  return resolveLabel(g, homeAdvances ? 'h' : 'a', byId, visited);
+}
+
+function miniRow(name, score, penalty, done) {
+  const pend = isPending(name);
+  const abbr = getAbbr(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : (TEAM_ES[name] || name);
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/32x24/${flagCode}.png" alt="${displayFull}" class="mini-flag" onerror="this.outerHTML='<span class=\\'mini-flag-ph\\'></span>'">`
+    : `<span class="mini-flag-ph"></span>`;
+  
+  const live = done && score !== null && score !== undefined && score !== 'null';
+  const scoreTxt = live ? score : '–';
+  const penaltyTxt = penalty !== null && penalty !== undefined && penalty !== '' && penalty !== 'null' && live
+    ? `<span class="mini-penalty">(${penalty})</span>`
+    : '';
+
+  return `<div class="mini-row" title="${displayFull}">
+    <span class="mini-abbr ${pend?'pending':''}">${abbr}</span>
+    ${flagHtml}
+    <span class="mini-score-wrap">
+      <span class="mini-score ${live?'live':''}">${scoreTxt}</span>
+      ${penaltyTxt}
+    </span>
+  </div>`;
+}
+
+function miniCard(g, byId, isFinal = false) {
+  if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
+
+  const done = g.finished === 'TRUE';
+  const h = resolveLabel(g, 'h', byId);
+  const a = resolveLabel(g, 'a', byId);
+  const status = matchStatus(g);
+  const liveBadge = status.live ? `<div class="mini-card-live">${status.short || '●'}</div>` : '';
+
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+    ${liveBadge}
+    <div class="mini-card-content">
+      ${miniRow(h, g.home_score, g.home_penalty_score, done)}
+      ${miniRow(a, g.away_score, g.away_penalty_score, done)}
+    </div>
+    <div class="mini-card-footer">${fmtDate(g.local_date)}</div>
+  </div>`;
+}
+
+// Cada nivel va de hojas (1/16) hacia la raíz (semifinal). Los pares
+// consecutivos del nivel inferior alimentan cada partido del nivel superior:
+// levels[0][0],levels[0][1] -> levels[1][0]; levels[0][2],levels[0][3] -> levels[1][1]; etc.
+const UPPER_LEVELS = [
+  ['74', '77', '73', '75', '83', '84', '81', '82'], // 1/16
+  ['89', '90', '93', '94'],                          // octavos
+  ['97', '98'],                                      // cuartos
+  ['101'],                                           // semifinal
+];
+
+const LOWER_LEVELS = [
+  ['76', '78', '79', '80', '86', '88', '85', '87'], // 1/16
+  ['91', '92', '95', '96'],                          // octavos
+  ['99', '100'],                                     // cuartos
+  ['102'],                                           // semifinal
+];
+
+function buildTreeNode(levels, byId, level, idx) {
+  const id = levels[level][idx];
+  const card = miniCard(byId[id], byId);
+  if (level === 0) {
+    return `<li>${card}</li>`;
+  }
+  const left = buildTreeNode(levels, byId, level - 1, idx * 2);
+  const right = buildTreeNode(levels, byId, level - 1, idx * 2 + 1);
+  return `<li>${card}<ul>${left}${right}</ul></li>`;
+}
+
+function buildHalfTree(levels, byId, flip) {
+  const root = buildTreeNode(levels, byId, levels.length - 1, 0);
+  return `<div class="tree-wrap ${flip ? 'flip' : ''}"><ul class="tree">${root}</ul></div>`;
+}
+
+function buildBracket(games) {
+  const byId = {};
+  games.forEach(g => { byId[String(g.id)] = g; });
+
+  // Mitad superior: hojas arriba, convergiendo HACIA ABAJO hasta la semifinal
+  // (justo encima de la final), igual que en la imagen de referencia.
+  let html = buildHalfTree(UPPER_LEVELS, byId, true);
+
+  html += `<div class="connector-v"></div>`;
+
+  // FINAL EN EL CENTRO
+  const final = byId['104'];
+  const third = byId['103'];
+
+  html += `<div class="center-final">
+    <div class="trophy">🏆</div>
+    <div class="final-row">
+      <div class="final-block">
+        <div class="final-title">Final</div>
+        ${final ? miniCard(final, byId, true) : '<div class="mini-card final" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+      <div class="third-place">
+        <div class="third-title">3er Puesto</div>
+        ${third ? miniCard(third, byId) : '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>'}
+      </div>
+    </div>
+  </div>`;
+
+  html += `<div class="connector-v"></div>`;
+
+  // Mitad inferior: semifinal arriba (debajo de la final), expandiéndose
+  // HACIA ABAJO hasta las hojas (1/16).
+  html += buildHalfTree(LOWER_LEVELS, byId, false);
+
+  document.getElementById('bracket').innerHTML = html;
+  window._byId = byId;
+}
+
+async function load() {
+  document.getElementById('dot').className = 'dot loading';
+  document.getElementById('st').textContent = 'Actualizando…';
+  try {
+    const res = await fetch(`${PROXY}?proxy=games`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const games = Array.isArray(data) ? data : (data.games || []);
+    if (!games.length) throw new Error('Sin partidos en la respuesta');
+
+    buildBracket(games);
+    document.getElementById('dot').className = 'dot ok';
+    document.getElementById('st').textContent = `${games.length} partidos cargados ✓`;
+
+    const now = new Date();
+    document.getElementById('upd').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+  } catch(e) {
+    console.error(e);
+    document.getElementById('bracket').innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
+    document.getElementById('dot').className = 'dot err';
+    document.getElementById('st').textContent = 'Error al cargar';
+  }
+}
+
+load();
+setInterval(load, 120000);
+
+// ===== Click en una tarjeta: marcarla en amarillo + mostrar ficha ampliada =====
+const ROUND_NAMES = {
+  group: 'Fase de Grupos',
+  r32: 'Dieciseisavos · 1/16',
+  r16: 'Octavos de Final',
+  qf: 'Cuartos de Final',
+  sf: 'Semifinal',
+  third: 'Tercer Puesto',
+  final: 'Final',
+};
+
+function parseScorers(raw) {
+  if (!raw || raw === 'null') return [];
+  const matches = raw.match(/["“]([^"”]+)["”]/g) || [];
+  return matches.map(s => s.replace(/^["“]|["”]$/g, ''));
+}
+
+function modalTeamRow(g, side, byId, done) {
+  const name = resolveLabel(g, side, byId);
+  const pend = isPending(name);
+  const flagCode = FLAGS[name];
+  const displayFull = pend ? name : (TEAM_ES[name] || name);
+  const score = side === 'h' ? g.home_score : g.away_score;
+  const penalty = side === 'h' ? g.home_penalty_score : g.away_penalty_score;
+  const live = done && score !== null && score !== undefined && score !== 'null';
+  const flagHtml = (!pend && flagCode)
+    ? `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" onerror="this.style.display='none'">`
+    : '';
+  const penHtml = (penalty && penalty !== 'null' && live) ? `<span class="pen">(${penalty})</span>` : '';
+
+  return `<div class="match-modal-team">
+    ${flagHtml}
+    <span class="match-modal-team-name">${displayFull}</span>
+    <span class="match-modal-team-score">${live ? score : '–'}${penHtml}</span>
+  </div>`;
+}
+
+function buildMatchModal(g, byId) {
+  const done = g.finished === 'TRUE';
+  const roundLabel = ROUND_NAMES[g.type] || g.group || '';
+  const homeScorers = parseScorers(g.home_scorers);
+  const awayScorers = parseScorers(g.away_scorers);
+  const hName = resolveLabel(g, 'h', byId);
+  const aName = resolveLabel(g, 'a', byId);
+  const status = matchStatus(g);
+
+  let scorersHtml = '';
+  if (homeScorers.length || awayScorers.length) {
+    scorersHtml = `<div class="match-modal-scorers">
+      <b>Goles</b>
+      ${homeScorers.map(s => `<div class="scorer-line">⚽ ${s} <span style="color:#777">(${TEAM_ES[hName] || hName})</span></div>`).join('')}
+      ${awayScorers.map(s => `<div class="scorer-line">⚽ ${s} <span style="color:#777">(${TEAM_ES[aName] || aName})</span></div>`).join('')}
+    </div>`;
+  }
+
+  const stadium = STADIUMS[String(g.stadium_id)];
+  const stadiumHtml = stadium
+    ? `<div class="match-modal-stadium">
+        <span class="match-modal-stadium-icon">🏟️</span>
+        <div>
+          <div class="match-modal-stadium-name">${stadium.name}</div>
+          <div class="match-modal-stadium-city">${stadium.city}, ${stadium.country}</div>
+        </div>
+        <span class="match-modal-stadium-capacity">${stadium.capacity.toLocaleString('es')} 👥</span>
+      </div>`
+    : '';
+
+  return `<div class="match-modal">
+    <div class="match-modal-header">
+      <span class="match-modal-round">${roundLabel}</span>
+      <button class="match-modal-close" id="match-modal-close-btn">✕</button>
+    </div>
+    ${modalTeamRow(g, 'h', byId, done)}
+    <div class="match-modal-divider"></div>
+    ${modalTeamRow(g, 'a', byId, done)}
+    ${scorersHtml}
+    ${stadiumHtml}
+    <div class="match-modal-footer">${fmtDate(g.local_date)} · <span class="${status.live ? 'status-live' : ''}">${status.label}</span></div>
+  </div>`;
+}
+
+(function setupMatchClicks() {
+  const bracket = document.getElementById('bracket');
+  const overlay = document.getElementById('match-modal-overlay');
+  let selectedCard = null;
+
+  function closeModal() {
+    overlay.style.display = 'none';
+    overlay.innerHTML = '';
+  }
+
+  bracket.addEventListener('click', (e) => {
+    const card = e.target.closest('.mini-card[data-match]');
+    if (!card) return;
+
+    if (selectedCard) selectedCard.classList.remove('selected');
+    card.classList.add('selected');
+    selectedCard = card;
+
+    const byId = window._byId || {};
+    const g = byId[card.getAttribute('data-match')];
+    if (!g) return;
+
+    overlay.innerHTML = buildMatchModal(g, byId);
+    overlay.style.display = 'flex';
+    document.getElementById('match-modal-close-btn').addEventListener('click', closeModal);
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+})();
+
+// ===== PWA: Service Worker + Cartel de instalación =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
+  });
+}
+
+(function setupInstallBanner() {
+  const STORAGE_KEY = 'mundial2026_install_dismissed';
+  const banner = document.getElementById('install-banner');
+
+  // Si ya está instalada (abierta como app) o el usuario ya cerró el cartel, no mostrar nada
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone || localStorage.getItem(STORAGE_KEY) === '1') return;
+
+  const ua = window.navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+
+  let deferredPrompt = null;
+
+  function dismiss() {
+    banner.style.display = 'none';
+    localStorage.setItem(STORAGE_KEY, '1');
+  }
+
+  function showBanner(html) {
+    banner.innerHTML = html;
+    banner.style.display = 'flex';
+    const closeBtn = document.getElementById('install-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', dismiss);
+  }
+
+  // Android / Chrome: esperar el evento nativo de instalación
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Accede más rápido desde tu pantalla de inicio.</span>
+        <button class="install-btn" id="install-action-btn">Instalar</button>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+      const actionBtn = document.getElementById('install-action-btn');
+      if (actionBtn) {
+        actionBtn.addEventListener('click', async () => {
+          banner.style.display = 'none';
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            deferredPrompt = null;
+          }
+          localStorage.setItem(STORAGE_KEY, '1');
+        });
+      }
+    }, 1500);
+  });
+
+  // iPhone/iPad en Safari: no existe instalación automática, mostrar instrucciones
+  if (isIOS && isSafari) {
+    setTimeout(() => {
+      if (localStorage.getItem(STORAGE_KEY) === '1') return;
+      showBanner(`
+        <span class="install-icon">📲</span>
+        <span class="install-text"><b>Instala la app</b><br>Toca <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b>.</span>
+        <button class="install-close" id="install-close-btn">✕</button>
+      `);
+    }, 1500);
+  }
+})();
+</script>
+
+</body>
+</html>
