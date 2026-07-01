@@ -210,6 +210,18 @@
       border-color: #4caf50;
     }
 
+    .mini-card.today {
+      border-color: #ff9800;
+      box-shadow: 0 0 16px rgba(255, 152, 0, 0.45);
+    }
+
+    .mini-card.today .mini-card-footer {
+      background: rgba(255, 152, 0, 0.15);
+      border-top-color: #ff9800;
+      color: #ff9800;
+      font-weight: bold;
+    }
+
     .mini-card-live {
       position: absolute;
       top: -7px;
@@ -874,11 +886,18 @@ const ABBR_ES = {
 };
 
 // ── ESPN enrichment ─────────────────────────────────────────────────────────
-// Importante: pedimos TODO el rango del torneo (fase de grupos + eliminatorias)
-// con dates=YYYYMMDD-YYYYMMDD y limit=200. Sin esto, la API de ESPN solo
-// devuelve el día "de hoy" y la mayoría de partidos (y sus goleadores) no
-// quedan enriquecidos.
-const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200';
+// Pedimos solo una ventana deslizante de ±7 días alrededor de hoy en vez del
+// torneo completo. Esto reduce la respuesta de ~cientos de KB a ~decenas de KB.
+// _espnTeams y _espnMatches acumulan datos entre refreshes, por lo que los
+// colores/logos y resultados recientes se conservan aunque la ventana se mueva.
+// El limit baja de 200 a 60 (ventana de 14 días × ~4 partidos/día de pico).
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+function getESPNUrl() {
+  const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const from = new Date(); from.setDate(from.getDate() - 7);
+  const to   = new Date(); to.setDate(to.getDate()   + 7);
+  return `${ESPN_BASE}?dates=${fmt(from)}-${fmt(to)}&limit=60`;
+}
 
 // Persisten entre refreshes para ir acumulando todos los equipos vistos
 if (!window._espnTeams)   window._espnTeams   = {}; // abbr → { color, altColor, logo, form }
@@ -1086,6 +1105,36 @@ function miniRow(name, score, penalty, done) {
   </div>`;
 }
 
+// Devuelve true si el partido es hoy en hora Colombia (UTC-5 / America/Bogota)
+function isToday(g) {
+  const todayBog = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  if (g._utcDate) {
+    const matchDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date(g._utcDate));
+    return matchDay === todayBog;
+  }
+  // Fallback: reconstruir UTC desde local_date + offset del estadio
+  if (g.local_date) {
+    const [dp, tp] = g.local_date.split(' ');
+    const [mo, dd, yy] = dp.split('/');
+    const [hh, mm] = (tp || '0:0').split(':').map(Number);
+    const venueOffset = STADIUM_UTC[String(g.stadium_id)] ?? -5;
+    const utcMs = Date.UTC(+yy, +mo - 1, +dd, hh - venueOffset, mm);
+    const matchDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date(utcMs));
+    return matchDay === todayBog;
+  }
+  return false;
+}
+
+// "HOY · 3:00 p. m. CO"  —  solo hora del partido, sin la fecha
+function fmtToday(g) {
+  const d = g._utcDate ? new Date(g._utcDate) : null;
+  if (!d) return 'HOY';
+  const opts = { timeZone: 'America/Bogota', hour: 'numeric', minute: '2-digit', hour12: true };
+  const parts = new Intl.DateTimeFormat('es-CO', opts).formatToParts(d);
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return `HOY · ${get('hour')}:${get('minute')} ${get('dayPeriod')} CO`;
+}
+
 function miniCard(g, byId, isFinal = false) {
   if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
 
@@ -1094,14 +1143,16 @@ function miniCard(g, byId, isFinal = false) {
   const a = resolveLabel(g, 'a', byId);
   const status = matchStatus(g);
   const liveBadge = status.live ? `<div class="mini-card-live">${status.short || '●'}</div>` : '';
+  const today = isToday(g);
+  const footerTxt = today ? fmtToday(g) : fmtDate(g.local_date, g.stadium_id, g._utcDate);
 
-  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''} ${today&&!isFinal?'today':''}" data-match="${g.id}">
     ${liveBadge}
     <div class="mini-card-content">
       ${miniRow(h, g.home_score, g.home_penalty_score, done)}
       ${miniRow(a, g.away_score, g.away_penalty_score, done)}
     </div>
-    <div class="mini-card-footer">${fmtDate(g.local_date, g.stadium_id, g._utcDate)}</div>
+    <div class="mini-card-footer">${footerTxt}</div>
   </div>`;
 }
 
@@ -1186,7 +1237,7 @@ function buildBracket(games) {
 
 async function fetchESPN() {
   try {
-    const res = await fetch(ESPN_SCOREBOARD);
+    const res = await fetch(getESPNUrl());
     if (!res.ok) return;
     const data = await res.json();
     for (const event of (data.events || [])) {
