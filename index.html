@@ -94,7 +94,8 @@
     .zoom-controls {
       position: fixed;
       right: 14px;
-      bottom: 18px;
+      top: 50%;
+      transform: translateY(-50%);
       z-index: 50;
       display: flex;
       flex-direction: column;
@@ -259,6 +260,18 @@
       border-top-color: #ff9800;
       color: #ff9800;
       font-weight: bold;
+    }
+
+    /* Tarjeta de partido en vivo: un poco más ancha para que el reloj
+       ("HOY · 3:00 p. m.") no se corte con puntos suspensivos. */
+    .mini-card.live {
+      width: 120px;
+    }
+    .mini-card.live .mini-card-footer {
+      white-space: normal;
+      font-size: 0.56rem;
+      line-height: 1.2;
+      padding: 3px 3px;
     }
 
     .mini-card-live {
@@ -1450,7 +1463,7 @@ function miniCard(g, byId, isFinal = false) {
   const today = isToday(g);
   const footerTxt = today ? fmtToday(g) : fmtDate(g.local_date, g.stadium_id, g._utcDate);
 
-  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''} ${today&&!isFinal?'today':''}" data-match="${g.id}">
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''} ${today&&!isFinal?'today':''} ${status.live?'live':''}" data-match="${g.id}">
     ${liveBadge}
     <div class="mini-card-content">
       ${miniRow(h, g.home_score, g.home_penalty_score, done, status.live)}
