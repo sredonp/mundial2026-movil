@@ -1631,8 +1631,33 @@ async function load() {
   }
 }
 
-load();
-setInterval(load, 120000);
+// Los navegadores/PWA suspenden los temporizadores (setInterval) cuando la
+// app pasa a segundo plano (pantalla bloqueada, cambio de app, pestaña
+// oculta). Sin esto, al volver no se refresca nada hasta la próxima marca
+// de 2 min (o hasta cerrar y reabrir del todo). Forzamos una recarga
+// inmediata en cuanto la página vuelve a ser visible.
+let lastLoadAt = 0;
+const origLoad = load;
+async function loadAndTrack(...args) {
+  lastLoadAt = Date.now();
+  return origLoad.apply(this, args);
+}
+
+loadAndTrack();
+setInterval(loadAndTrack, 120000);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Evita ráfagas de refrescos si el usuario cambia de app muy rápido
+    if (Date.now() - lastLoadAt > 5000) loadAndTrack();
+  }
+});
+
+// Algunos navegadores móviles disparan 'pageshow' (con persisted=true) al
+// volver desde el caché de retroceso/adelante en vez de visibilitychange.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted && Date.now() - lastLoadAt > 5000) loadAndTrack();
+});
 
 // ===== Click en una tarjeta: marcarla en amarillo + mostrar ficha ampliada =====
 const ROUND_NAMES = {
