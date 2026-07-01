@@ -1883,6 +1883,40 @@ function buildMatchModal(g, byId) {
     applyZoom();
     wrapper.scrollLeft = 0;
   });
+
+  // ── Pinch-to-zoom con gestos de dos dedos ──
+  // Reemplaza el pinch nativo del navegador (que rompe el layout, ver
+  // meta viewport user-scalable=no) por uno propio que solo escala el
+  // bracket y respeta su scroll interno.
+  let pinchStartDist = null;
+  let pinchStartLevel = 1;
+
+  function touchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  wrapper.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      pinchStartDist = touchDist(e.touches);
+      pinchStartLevel = level;
+    }
+  }, { passive: true });
+
+  wrapper.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      e.preventDefault(); // evita que el navegador intente su propio zoom/scroll
+      const newDist = touchDist(e.touches);
+      const scaleFactor = newDist / pinchStartDist;
+      level = Math.max(MIN, Math.min(MAX, +(pinchStartLevel * scaleFactor).toFixed(2)));
+      applyZoom();
+    }
+  }, { passive: false });
+
+  wrapper.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinchStartDist = null;
+  }, { passive: true });
 })();
 
 
