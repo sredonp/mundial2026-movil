@@ -874,7 +874,11 @@ const ABBR_ES = {
 };
 
 // ── ESPN enrichment ─────────────────────────────────────────────────────────
-const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+// Importante: pedimos TODO el rango del torneo (fase de grupos + eliminatorias)
+// con dates=YYYYMMDD-YYYYMMDD y limit=200. Sin esto, la API de ESPN solo
+// devuelve el día "de hoy" y la mayoría de partidos (y sus goleadores) no
+// quedan enriquecidos.
+const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200';
 
 // Persisten entre refreshes para ir acumulando todos los equipos vistos
 if (!window._espnTeams)   window._espnTeams   = {}; // abbr → { color, altColor, logo, form }
@@ -890,6 +894,27 @@ function getESPNMatch(g) {
   const aA = ABBR_ES[g.away_team_name_en];
   if (!hA || !aA) return null;
   return window._espnMatches[`${hA}-${aA}`] || null;
+}
+
+// Extrae goleadores reales desde comp.details (nombres correctos con
+// tildes/ñ tal como los da ESPN, mucho más confiable que el parseo por
+// regex del campo de texto del sheet).
+function extractESPNScorers(comp, home, away) {
+  const scorers = { home: [], away: [] };
+  for (const d of (comp.details || [])) {
+    if (!d.scoringPlay || d.shootout) continue; // ignoramos goles de penales en tanda
+    const side = d.team?.id === home?.team?.id ? 'home'
+               : d.team?.id === away?.team?.id ? 'away'
+               : null;
+    if (!side) continue;
+    const athlete = d.athletesInvolved?.[0];
+    if (!athlete) continue;
+    let name = (athlete.displayName || athlete.shortName || athlete.fullName || '').trim();
+    if (!name) continue;
+    if (d.ownGoal) name += ' (p.p.)';
+    scorers[side].push({ name, minute: d.clock?.displayValue || '' });
+  }
+  return scorers;
 }
 
 function formDots(form) {
@@ -1190,6 +1215,7 @@ async function fetchESPN() {
         const st = comp.status || {};
         const broadcasts = comp.broadcasts?.[0]?.names || [];
         const link = event.links?.find(l => l.rel?.includes('summary'))?.href || null;
+        const scorers = extractESPNScorers(comp, home, away);
         window._espnMatches[key] = {
           espnId:       event.id,
           utcDate:      event.date,
@@ -1198,6 +1224,7 @@ async function fetchESPN() {
           displayClock: st.displayClock,
           broadcasts,
           link,
+          scorers,
         };
       }
     }
@@ -1289,12 +1316,18 @@ function modalTeamRow(g, side, byId, done) {
 function buildMatchModal(g, byId) {
   const done = g.finished === 'TRUE';
   const roundLabel = ROUND_NAMES[g.type] || g.group || '';
-  const homeScorers = parseScorers(g.home_scorers);
-  const awayScorers = parseScorers(g.away_scorers);
   const hName = resolveLabel(g, 'h', byId);
   const aName = resolveLabel(g, 'a', byId);
   const status = matchStatus(g);
   const isLive = status.live;
+
+  // Goleadores: preferimos los de ESPN (nombres correctos, con tildes/ñ) y
+  // usamos el campo de texto del sheet solo si ESPN todavía no tiene el partido.
+  const em = g._espnMatch;
+  const espnScorers = em?.scorers;
+  const fmtScorer = s => s.minute ? `${s.name} ${s.minute}` : s.name;
+  const homeScorers = espnScorers?.home?.length ? espnScorers.home.map(fmtScorer) : parseScorers(g.home_scorers);
+  const awayScorers = espnScorers?.away?.length ? espnScorers.away.map(fmtScorer) : parseScorers(g.away_scorers);
 
   // Gradiente del header con colores ESPN
   const hTeam = getESPNTeam(hName);
@@ -1329,7 +1362,6 @@ function buildMatchModal(g, byId) {
     : '';
 
   // TV / Streaming desde ESPN
-  const em = g._espnMatch;
   const tvHtml = em?.broadcasts?.length
     ? `<div class="modal-tv">📺 <span>${em.broadcasts.join(' · ')}</span></div>`
     : '';
