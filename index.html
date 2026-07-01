@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Fase Final Mundial 2026</title>
 
   <!-- PWA: manifest, íconos y color de tema -->
@@ -86,7 +86,44 @@
       width: max-content;
       min-width: 100%;
       padding: 20px;
+      transform-origin: top left;
     }
+
+    /* ── Controles de zoom propios (reemplazan el pinch-zoom nativo, que
+       rompe el desplazamiento horizontal interno del bracket) ── */
+    .zoom-controls {
+      position: fixed;
+      right: 14px;
+      bottom: 18px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(20, 24, 48, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 6px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    .zoom-controls button {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .zoom-controls button:active {
+      background: rgba(255,255,255,0.2);
+    }
+    #zoom-fit { font-size: 0.85rem; }
 
     /* ===== ÁRBOL VERTICAL (arriba/abajo, como la llave de referencia) ===== */
     .bracket-content {
@@ -954,10 +991,16 @@
   <span id="st">Cargando...</span> · <span id="upd">--:--</span>
 </div>
 
-<div class="bracket-wrapper">
-  <div class="bracket-container">
+<div class="bracket-wrapper" id="bracket-wrapper">
+  <div class="bracket-container" id="bracket-container">
     <div class="bracket-content" id="bracket"></div>
   </div>
+</div>
+
+<div class="zoom-controls" id="zoom-controls">
+  <button id="zoom-out" aria-label="Alejar">－</button>
+  <button id="zoom-fit" aria-label="Ajustar a pantalla">⤢</button>
+  <button id="zoom-in" aria-label="Acercar">＋</button>
 </div>
 
 <script>
@@ -1803,7 +1846,46 @@ function buildMatchModal(g, byId) {
   });
 })();
 
-// ===== PWA: Service Worker + Cartel de instalación =====
+// ===== Controles de zoom propios (reemplazan el pinch-zoom nativo) =====
+(function setupZoomControls() {
+  const container = document.getElementById('bracket-container');
+  const wrapper = document.getElementById('bracket-wrapper');
+  const outBtn = document.getElementById('zoom-out');
+  const inBtn = document.getElementById('zoom-in');
+  const fitBtn = document.getElementById('zoom-fit');
+  if (!container || !wrapper || !outBtn || !inBtn || !fitBtn) return;
+
+  const MIN = 0.45, MAX = 1.3, STEP = 0.1;
+  let level = 1;
+
+  function applyZoom() {
+    container.style.zoom = level;
+  }
+
+  inBtn.addEventListener('click', () => {
+    level = Math.min(MAX, +(level + STEP).toFixed(2));
+    applyZoom();
+  });
+
+  outBtn.addEventListener('click', () => {
+    level = Math.max(MIN, +(level - STEP).toFixed(2));
+    applyZoom();
+  });
+
+  fitBtn.addEventListener('click', () => {
+    // Medimos el ancho real del bracket sin zoom para calcular el nivel
+    // que permite verlo completo dentro del ancho visible de pantalla.
+    container.style.zoom = 1;
+    const fullWidth = container.scrollWidth;
+    const available = wrapper.clientWidth;
+    level = fullWidth > 0 ? Math.max(MIN, Math.min(1, available / fullWidth)) : 1;
+    level = +level.toFixed(2);
+    applyZoom();
+    wrapper.scrollLeft = 0;
+  });
+})();
+
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW no registrado:', err));
