@@ -210,6 +210,18 @@
       border-color: #4caf50;
     }
 
+    .mini-card.today {
+      border-color: #ff9800;
+      box-shadow: 0 0 16px rgba(255, 152, 0, 0.45);
+    }
+
+    .mini-card.today .mini-card-footer {
+      background: rgba(255, 152, 0, 0.15);
+      border-top-color: #ff9800;
+      color: #ff9800;
+      font-weight: bold;
+    }
+
     .mini-card-live {
       position: absolute;
       top: -7px;
@@ -639,13 +651,12 @@
 
     .match-modal-team img {
       width: 40px;
-      height: 30px;
-      object-fit: cover;
+      height: 40px;
+      object-fit: contain;
       border-radius: 3px;
     }
 
     .match-modal-team-name {
-      flex: 1;
       font-size: 1rem;
       font-weight: bold;
       color: #fff;
@@ -735,6 +746,64 @@
       color: #ff4444;
       font-weight: bold;
     }
+
+    /* ── Forma reciente (puntos W/L/D) ── */
+    .form-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+      margin-top: 3px;
+    }
+    .form-label {
+      font-size: 0.65rem;
+      color: #888;
+      margin-right: 4px;
+      white-space: nowrap;
+    }
+    .form-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    /* ── Logo ESPN + info equipo ── */
+    .modal-team-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .modal-team-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    /* ── TV / Streaming ── */
+    .modal-tv {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-tv span {
+      color: #ddd;
+    }
+
+    /* ── Link ESPN ── */
+    .espn-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: #e8534a;
+      text-decoration: none;
+      font-weight: bold;
+      letter-spacing: 0.3px;
+    }
+    .espn-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -816,6 +885,68 @@ const ABBR_ES = {
   'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
 };
 
+// ── ESPN enrichment ─────────────────────────────────────────────────────────
+// Pedimos solo una ventana deslizante de ±7 días alrededor de hoy en vez del
+// torneo completo. Esto reduce la respuesta de ~cientos de KB a ~decenas de KB.
+// _espnTeams y _espnMatches acumulan datos entre refreshes, por lo que los
+// colores/logos y resultados recientes se conservan aunque la ventana se mueva.
+// El limit baja de 200 a 60 (ventana de 14 días × ~4 partidos/día de pico).
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+function getESPNUrl() {
+  const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const from = new Date(); from.setDate(from.getDate() - 7);
+  const to   = new Date(); to.setDate(to.getDate()   + 7);
+  return `${ESPN_BASE}?dates=${fmt(from)}-${fmt(to)}&limit=60`;
+}
+
+// Persisten entre refreshes para ir acumulando todos los equipos vistos
+if (!window._espnTeams)   window._espnTeams   = {}; // abbr → { color, altColor, logo, form }
+if (!window._espnMatches) window._espnMatches = {}; // "HOMEabbr-AWAYabbr" → { utcDate, state, displayClock, broadcasts, link }
+
+function getESPNTeam(name) {
+  const abbr = ABBR_ES[name] || name;
+  return window._espnTeams[abbr] || null;
+}
+
+function getESPNMatch(g) {
+  const hA = ABBR_ES[g.home_team_name_en];
+  const aA = ABBR_ES[g.away_team_name_en];
+  if (!hA || !aA) return null;
+  return window._espnMatches[`${hA}-${aA}`] || null;
+}
+
+// Extrae goleadores reales desde comp.details (nombres correctos con
+// tildes/ñ tal como los da ESPN, mucho más confiable que el parseo por
+// regex del campo de texto del sheet).
+function extractESPNScorers(comp, home, away) {
+  const scorers = { home: [], away: [] };
+  for (const d of (comp.details || [])) {
+    if (!d.scoringPlay || d.shootout) continue; // ignoramos goles de penales en tanda
+    const side = d.team?.id === home?.team?.id ? 'home'
+               : d.team?.id === away?.team?.id ? 'away'
+               : null;
+    if (!side) continue;
+    const athlete = d.athletesInvolved?.[0];
+    if (!athlete) continue;
+    let name = (athlete.displayName || athlete.shortName || athlete.fullName || '').trim();
+    if (!name) continue;
+    if (d.ownGoal) name += ' (p.p.)';
+    scorers[side].push({ name, minute: d.clock?.displayValue || '' });
+  }
+  return scorers;
+}
+
+function formDots(form) {
+  if (!form) return '';
+  const dots = form.split('').map(c => {
+    const col = c === 'W' ? '#4caf50' : c === 'L' ? '#f44336' : '#aaa';
+    const title = c === 'W' ? 'Victoria' : c === 'L' ? 'Derrota' : 'Empate';
+    return `<span class="form-dot" style="background:${col}" title="${title}"></span>`;
+  }).join('');
+  return `<span class="form-dots"><span class="form-label">Últ. 5:</span>${dots}</span>`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const STADIUMS = {
   '1':  { name: 'Estadio Azteca', city: 'Ciudad de México', country: 'México', capacity: 83000 },
   '2':  { name: 'Estadio Akron', city: 'Guadalajara (Zapopan)', country: 'México', capacity: 48000 },
@@ -837,35 +968,60 @@ const STADIUMS = {
 
 const pad = n => String(n).padStart(2,'0');
 
-function fmtDate(s) {
-  if (!s) return '';
-  const [dp, tp] = s.split(' ');
-  const [mo,dd,yy] = dp.split('/');
-  const d = new Date(`${yy}-${mo}-${dd}T${tp}:00-05:00`);
-  return `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}h`;
+// UTC offset de cada estadio durante junio-julio (DST activo en USA/Canadá)
+const STADIUM_UTC = {
+  '1': -6, '2': -6, '3': -6,      // México (sin DST desde 2023)
+  '4': -5, '5': -5, '6': -5,      // Dallas, Houston, Kansas City (CDT)
+  '7': -4, '8': -4, '9': -4,      // Atlanta, Miami, Boston (EDT)
+  '10': -4, '11': -4, '12': -4,   // Philadelphia, MetLife, Toronto (EDT)
+  '13': -7, '14': -7, '15': -7,   // Vancouver, Seattle, San Francisco (PDT)
+  '16': -7,                        // Los Ángeles (PDT)
+};
+
+// Si tenemos fecha UTC de ESPN la usamos directamente (precisa, sin offset manual).
+// Fallback: lógica existente con STADIUM_UTC.
+function fmtDate(s, stadiumId, utcDate) {
+  let d;
+  if (utcDate) {
+    d = new Date(utcDate);
+  } else {
+    if (!s) return '';
+    const [dp, tp] = s.split(' ');
+    const [mo, dd, yy] = dp.split('/');
+    const [hh, mm] = tp.split(':').map(Number);
+    const venueOffset = STADIUM_UTC[String(stadiumId)] ?? -5;
+    const utcMs = Date.UTC(+yy, +mo - 1, +dd, hh - venueOffset, mm);
+    d = new Date(utcMs - 5 * 3600000); // → Colombia UTC-5
+    const ampm = d.getUTCHours() >= 12 ? 'pm' : 'am';
+    const h12 = d.getUTCHours() % 12 || 12;
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${h12}:${pad(d.getUTCMinutes())} ${ampm} CO`;
+  }
+  // Usar Intl para convertir UTC → Colombia
+  const opts = { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true };
+  const parts = new Intl.DateTimeFormat('es-CO', opts).formatToParts(d);
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return `${get('day')} ${get('month')} ${get('hour')}:${get('minute')} ${get('dayPeriod')} CO`;
 }
 
-// Interpreta time_elapsed: 'notstarted', 'live', 'HT', 'FT', o un minuto ("23", "45+2", "90")
+// Interpreta time_elapsed. Prioriza datos ESPN si están disponibles.
 function matchStatus(g) {
+  const espn = getESPNMatch(g);
+  if (espn) {
+    if (espn.completed || espn.state === 'post') return { label: 'Finalizado', short: 'FIN', live: false };
+    if (espn.state === 'in') {
+      const clk = espn.displayClock || 'VIVO';
+      return { label: clk, short: clk, live: true };
+    }
+    if (espn.state === 'pre') return { label: 'Por jugar', short: '', live: false };
+  }
+  // Fallback al campo local
   const te = (g.time_elapsed || '').toString().trim();
-
-  if (g.finished === 'TRUE' || te === 'FT') {
-    return { label: 'Finalizado', short: 'FIN', live: false };
-  }
-  if (te === 'HT') {
-    return { label: 'Descanso', short: 'DT', live: true };
-  }
-  if (te === 'live') {
-    return { label: 'En vivo', short: 'VIVO', live: true };
-  }
-  if (!te || te === 'notstarted') {
-    return { label: 'Por jugar', short: '', live: false };
-  }
-  // Minuto numérico (puede traer sufijo de descuento, ej. "45+2")
-  if (/^\d+(\+\d+)?$/.test(te)) {
-    return { label: `${te}'`, short: `${te}'`, live: true };
-  }
-  // Fallback: mostrar el valor tal cual
+  if (g.finished === 'TRUE' || te === 'FT') return { label: 'Finalizado', short: 'FIN', live: false };
+  if (te === 'HT') return { label: 'Descanso', short: 'DT', live: true };
+  if (te === 'live') return { label: 'En vivo', short: 'VIVO', live: true };
+  if (!te || te === 'notstarted') return { label: 'Por jugar', short: '', live: false };
+  if (/^\d+(\+\d+)?$/.test(te)) return { label: `${te}'`, short: `${te}'`, live: true };
   return { label: te, short: te, live: false };
 }
 
@@ -949,6 +1105,36 @@ function miniRow(name, score, penalty, done) {
   </div>`;
 }
 
+// Devuelve true si el partido es hoy en hora Colombia (UTC-5 / America/Bogota)
+function isToday(g) {
+  const todayBog = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  if (g._utcDate) {
+    const matchDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date(g._utcDate));
+    return matchDay === todayBog;
+  }
+  // Fallback: reconstruir UTC desde local_date + offset del estadio
+  if (g.local_date) {
+    const [dp, tp] = g.local_date.split(' ');
+    const [mo, dd, yy] = dp.split('/');
+    const [hh, mm] = (tp || '0:0').split(':').map(Number);
+    const venueOffset = STADIUM_UTC[String(g.stadium_id)] ?? -5;
+    const utcMs = Date.UTC(+yy, +mo - 1, +dd, hh - venueOffset, mm);
+    const matchDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date(utcMs));
+    return matchDay === todayBog;
+  }
+  return false;
+}
+
+// "HOY · 3:00 p. m. CO"  —  solo hora del partido, sin la fecha
+function fmtToday(g) {
+  const d = g._utcDate ? new Date(g._utcDate) : null;
+  if (!d) return 'HOY';
+  const opts = { timeZone: 'America/Bogota', hour: 'numeric', minute: '2-digit', hour12: true };
+  const parts = new Intl.DateTimeFormat('es-CO', opts).formatToParts(d);
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return `HOY · ${get('hour')}:${get('minute')} ${get('dayPeriod')} CO`;
+}
+
 function miniCard(g, byId, isFinal = false) {
   if (!g) return '<div class="mini-card" style="opacity:0.3"><div class="mini-card-content"><div class="mini-row"></div><div class="mini-row"></div></div></div>';
 
@@ -957,14 +1143,16 @@ function miniCard(g, byId, isFinal = false) {
   const a = resolveLabel(g, 'a', byId);
   const status = matchStatus(g);
   const liveBadge = status.live ? `<div class="mini-card-live">${status.short || '●'}</div>` : '';
+  const today = isToday(g);
+  const footerTxt = today ? fmtToday(g) : fmtDate(g.local_date, g.stadium_id, g._utcDate);
 
-  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''}" data-match="${g.id}">
+  return `<div class="mini-card ${done?'done':''} ${isFinal?'final':''} ${today&&!isFinal?'today':''}" data-match="${g.id}">
     ${liveBadge}
     <div class="mini-card-content">
       ${miniRow(h, g.home_score, g.home_penalty_score, done)}
       ${miniRow(a, g.away_score, g.away_penalty_score, done)}
     </div>
-    <div class="mini-card-footer">${fmtDate(g.local_date)}</div>
+    <div class="mini-card-footer">${footerTxt}</div>
   </div>`;
 }
 
@@ -1003,7 +1191,15 @@ function buildHalfTree(levels, byId, flip) {
 
 function buildBracket(games) {
   const byId = {};
-  games.forEach(g => { byId[String(g.id)] = g; });
+  games.forEach(g => {
+    byId[String(g.id)] = g;
+    // Enrich con ESPN si hay datos disponibles
+    const em = getESPNMatch(g);
+    if (em) {
+      g._utcDate    = em.utcDate;
+      g._espnMatch  = em;
+    }
+  });
 
   // Mitad superior: hojas arriba, convergiendo HACIA ABAJO hasta la semifinal
   // (justo encima de la final), igual que en la imagen de referencia.
@@ -1039,11 +1235,63 @@ function buildBracket(games) {
   window._byId = byId;
 }
 
+async function fetchESPN() {
+  try {
+    const res = await fetch(getESPNUrl());
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const event of (data.events || [])) {
+      const comp = event.competitions?.[0];
+      if (!comp) continue;
+      const competitors = comp.competitors || [];
+      const home = competitors.find(c => c.homeAway === 'home');
+      const away = competitors.find(c => c.homeAway === 'away');
+
+      // Acumular datos de equipo
+      for (const c of competitors) {
+        const abbr = c.team?.abbreviation;
+        if (abbr && !window._espnTeams[abbr]) {
+          window._espnTeams[abbr] = {
+            color:    c.team.color    || null,
+            altColor: c.team.alternateColor || null,
+            logo:     c.team.logo     || null,
+            form:     c.form          || null,
+          };
+        }
+      }
+
+      // Datos del partido
+      if (home && away) {
+        const key = `${home.team?.abbreviation}-${away.team?.abbreviation}`;
+        const st = comp.status || {};
+        const broadcasts = comp.broadcasts?.[0]?.names || [];
+        const link = event.links?.find(l => l.rel?.includes('summary'))?.href || null;
+        const scorers = extractESPNScorers(comp, home, away);
+        window._espnMatches[key] = {
+          espnId:       event.id,
+          utcDate:      event.date,
+          state:        st.type?.state,
+          completed:    st.type?.completed,
+          displayClock: st.displayClock,
+          broadcasts,
+          link,
+          scorers,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('ESPN API:', e.message);
+  }
+}
+
 async function load() {
   document.getElementById('dot').className = 'dot loading';
   document.getElementById('st').textContent = 'Actualizando…';
   try {
-    const res = await fetch(`${PROXY}?proxy=games`);
+    const [res] = await Promise.all([
+      fetch(`${PROXY}?proxy=games`),
+      fetchESPN(),
+    ]);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const games = Array.isArray(data) ? data : (data.games || []);
@@ -1090,37 +1338,68 @@ function modalTeamRow(g, side, byId, done) {
   const displayFull = pend ? name : (TEAM_ES[name] || name);
   const score = side === 'h' ? g.home_score : g.away_score;
   const penalty = side === 'h' ? g.home_penalty_score : g.away_penalty_score;
-  const live = done && score !== null && score !== undefined && score !== 'null';
-  const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" onerror="this.style.display='none'">`
-    : '';
-  const penHtml = (penalty && penalty !== 'null' && live) ? `<span class="pen">(${penalty})</span>` : '';
+  const showScore = done && score !== null && score !== undefined && score !== 'null';
+  const espnTeam = getESPNTeam(name);
 
-  return `<div class="match-modal-team">
-    ${flagHtml}
-    <span class="match-modal-team-name">${displayFull}</span>
-    <span class="match-modal-team-score">${live ? score : '–'}${penHtml}</span>
+  // Logo: ESPN (mejor calidad) → flagcdn → nada
+  let imgHtml = '';
+  if (!pend) {
+    if (espnTeam?.logo) {
+      imgHtml = `<img src="${espnTeam.logo}" alt="${displayFull}" class="modal-team-logo" onerror="this.src='https://flagcdn.com/64x48/${flagCode||'xx'}.png'">`;
+    } else if (flagCode) {
+      imgHtml = `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" class="modal-team-logo" onerror="this.style.display='none'">`;
+    }
+  }
+
+  const penHtml = (penalty && penalty !== 'null' && showScore) ? `<span class="pen">(${penalty})</span>` : '';
+  const formHtml = espnTeam?.form ? formDots(espnTeam.form) : '';
+  const colorStrip = espnTeam?.color ? `style="border-left: 3px solid #${espnTeam.color}"` : '';
+
+  return `<div class="match-modal-team" ${colorStrip}>
+    ${imgHtml}
+    <div class="modal-team-info">
+      <span class="match-modal-team-name">${displayFull}</span>
+    </div>
+    <span class="match-modal-team-score">${showScore ? score : '–'}${penHtml}</span>
   </div>`;
 }
 
 function buildMatchModal(g, byId) {
   const done = g.finished === 'TRUE';
   const roundLabel = ROUND_NAMES[g.type] || g.group || '';
-  const homeScorers = parseScorers(g.home_scorers);
-  const awayScorers = parseScorers(g.away_scorers);
   const hName = resolveLabel(g, 'h', byId);
   const aName = resolveLabel(g, 'a', byId);
   const status = matchStatus(g);
+  const isLive = status.live;
 
+  // Goleadores: preferimos los de ESPN (nombres correctos, con tildes/ñ) y
+  // usamos el campo de texto del sheet solo si ESPN todavía no tiene el partido.
+  const em = g._espnMatch;
+  const espnScorers = em?.scorers;
+  const fmtScorer = s => s.minute ? `${s.name} ${s.minute}` : s.name;
+  const homeScorers = espnScorers?.home?.length ? espnScorers.home.map(fmtScorer) : parseScorers(g.home_scorers);
+  const awayScorers = espnScorers?.away?.length ? espnScorers.away.map(fmtScorer) : parseScorers(g.away_scorers);
+
+  // Gradiente del header con colores ESPN
+  const hTeam = getESPNTeam(hName);
+  const aTeam = getESPNTeam(aName);
+  const hCol = hTeam?.color ? `#${hTeam.color}` : '1a2a4a';
+  const aCol = aTeam?.color ? `#${aTeam.color}` : '1a2a4a';
+  const headerGrad = `background: linear-gradient(135deg, #${hCol}cc 0%, #0f172980 50%, #${aCol}cc 100%);`;
+
+  // Goles (rojos si partido en curso)
   let scorersHtml = '';
   if (homeScorers.length || awayScorers.length) {
+    const goalIcon = isLive ? '🔴' : '⚽';
+    const scorerStyle = isLive ? 'color:#ff5555;font-weight:bold;' : '';
     scorersHtml = `<div class="match-modal-scorers">
-      <b>Goles</b>
-      ${homeScorers.map(s => `<div class="scorer-line">⚽ ${s} <span style="color:#777">(${TEAM_ES[hName] || hName})</span></div>`).join('')}
-      ${awayScorers.map(s => `<div class="scorer-line">⚽ ${s} <span style="color:#777">(${TEAM_ES[aName] || aName})</span></div>`).join('')}
+      <b>${isLive ? '<span style="color:#ff5555">⚡ En curso</span>' : 'Goles'}</b>
+      ${homeScorers.map(s => `<div class="scorer-line" style="${scorerStyle}">${goalIcon} ${s} <span style="color:#777">(${TEAM_ES[hName] || hName})</span></div>`).join('')}
+      ${awayScorers.map(s => `<div class="scorer-line" style="${scorerStyle}">${goalIcon} ${s} <span style="color:#777">(${TEAM_ES[aName] || aName})</span></div>`).join('')}
     </div>`;
   }
 
+  // Estadio
   const stadium = STADIUMS[String(g.stadium_id)];
   const stadiumHtml = stadium
     ? `<div class="match-modal-stadium">
@@ -1133,8 +1412,18 @@ function buildMatchModal(g, byId) {
       </div>`
     : '';
 
+  // TV / Streaming desde ESPN
+  const tvHtml = em?.broadcasts?.length
+    ? `<div class="modal-tv">📺 <span>${em.broadcasts.join(' · ')}</span></div>`
+    : '';
+
+  // Link directo a ESPN
+  const espnLinkHtml = em?.link
+    ? `<a href="${em.link}" target="_blank" rel="noopener" class="espn-link">Ver en ESPN →</a>`
+    : '';
+
   return `<div class="match-modal">
-    <div class="match-modal-header">
+    <div class="match-modal-header" style="${headerGrad}">
       <span class="match-modal-round">${roundLabel}</span>
       <button class="match-modal-close" id="match-modal-close-btn">✕</button>
     </div>
@@ -1143,7 +1432,10 @@ function buildMatchModal(g, byId) {
     ${modalTeamRow(g, 'a', byId, done)}
     ${scorersHtml}
     ${stadiumHtml}
-    <div class="match-modal-footer">${fmtDate(g.local_date)} · <span class="${status.live ? 'status-live' : ''}">${status.label}</span></div>
+    ${tvHtml}
+    <div class="match-modal-footer">
+      ${fmtDate(g.local_date, g.stadium_id, g._utcDate)} · <span class="${isLive ? 'status-live' : ''}">${status.label}</span>
+    </div>
   </div>`;
 }
 
