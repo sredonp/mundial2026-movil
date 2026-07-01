@@ -823,19 +823,6 @@
       flex: 1;
     }
 
-    /* ── TV / Streaming ── */
-    .modal-tv {
-      margin-top: 10px;
-      font-size: 0.75rem;
-      color: #aaa;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .modal-tv span {
-      color: #ddd;
-    }
-
     /* ── Botón de recordatorio ── */
     .remind-btn {
       display: block;
@@ -1658,11 +1645,6 @@ function buildMatchModal(g, byId) {
       </div>`
     : '';
 
-  // TV / Streaming desde ESPN
-  const tvHtml = em?.broadcasts?.length
-    ? `<div class="modal-tv">📺 <span>${em.broadcasts.join(' · ')}</span></div>`
-    : '';
-
   // Estadísticas del partido (posesión, tiros, etc.), cuando ESPN las provee
   let statsHtml = '';
   if (em?.stats?.length) {
@@ -1723,7 +1705,6 @@ function buildMatchModal(g, byId) {
     ${scorersHtml}
     ${stadiumHtml}
     ${statsHtml}
-    ${tvHtml}
     ${isLive ? `<div class="match-modal-footer"><span class="status-live">${status.label}</span></div>` : ''}
   </div>`;
 }
