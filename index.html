@@ -1,742 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fase Final Mundial 2026</title>
-
-  <!-- PWA: manifest, íconos y color de tema -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f0f12">
-  <link rel="icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Mundial 2026">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html {
-      background: #0a0e27;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-      background-attachment: fixed;
-      color: #fff;
-      padding: 20px;
-      min-height: 100vh;
-      min-height: 100dvh;
-      overscroll-behavior-y: none;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .header h1 {
-      font-size: 2rem;
-      background: linear-gradient(135deg, #ffd700, #ffed4e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 5px;
-    }
-
-    .header .subtitle {
-      font-size: 0.85rem;
-      color: #888;
-    }
-
-    .status-bar {
-      text-align: center;
-      margin-bottom: 15px;
-      font-size: 0.8rem;
-      color: #666;
-    }
-
-    .dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      margin-right: 5px;
-      vertical-align: middle;
-    }
-
-    .dot.ok { background: #4caf50; }
-    .dot.loading { background: #ff9800; animation: pulse 1.5s infinite; }
-    .dot.err { background: #f44336; }
-
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-    .bracket-wrapper {
-      position: relative;
-      margin: 20px auto;
-      max-width: 100%;
-      overflow-x: auto;
-    }
-
-    .bracket-container {
-      position: relative;
-      display: inline-block;
-      width: max-content;
-      padding: 20px;
-    }
-
-    /* ===== ÁRBOL VERTICAL (arriba/abajo, como la llave de referencia) ===== */
-    .bracket-content {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .connector-v {
-      width: 0;
-      height: 30px;
-      border-left: 2px solid #ffd700;
-      margin: 0 auto;
-    }
-
-    /* Mitad superior: las hojas quedan arriba y convergen HACIA ABAJO hasta la
-       semifinal (justo encima de la FINAL). Se construye el árbol normal
-       (raíz arriba) y se invierte verticalmente con scaleY(-1); el contenido
-       de cada tarjeta se vuelve a invertir para que se lea correctamente. */
-    .tree-wrap.flip {
-      transform: scaleY(-1);
-    }
-    .tree-wrap.flip .mini-card {
-      transform: scaleY(-1);
-    }
-
-    .tree-wrap {
-      display: inline-block;
-    }
-
-    .tree, .tree ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      display: inline-block;
-    }
-
-    .tree ul {
-      position: relative;
-      padding-top: 30px;
-    }
-    .tree ul::after {
-      content: "";
-      display: table;
-      clear: both;
-    }
-
-    .tree li {
-      float: left;
-      text-align: center;
-      list-style-type: none;
-      position: relative;
-      padding: 30px 8px 0 8px;
-    }
-
-    .tree li::before,
-    .tree li::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 50%;
-      width: 50%;
-      height: 30px;
-      border-top: 2px solid #4a9eff;
-    }
-    .tree li::after {
-      right: auto;
-      left: 50%;
-      border-left: 2px solid #4a9eff;
-    }
-    .tree li:only-child::after,
-    .tree li:only-child::before {
-      display: none;
-    }
-    .tree li:only-child { padding-top: 0; }
-    .tree li:first-child::before,
-    .tree li:last-child::after {
-      border: 0 none;
-    }
-    .tree li:last-child::before {
-      border-right: 2px solid #4a9eff;
-    }
-    .tree > li {
-      padding-top: 0;
-    }
-    .tree > li::before,
-    .tree > li::after {
-      display: none;
-    }
-    .tree li ul::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 0;
-      height: 30px;
-      border-left: 2px solid #4a9eff;
-    }
-
-    /* ===== CASILLAS ===== */
-    .mini-card {
-      cursor: pointer;
-      position: relative;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      margin: 0 auto;
-      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
-      border: 2px solid #4a9eff;
-      border-radius: 8px;
-      width: 105px;
-      overflow: hidden;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
-    }
-
-    .mini-card:hover {
-      border-color: #ffd700;
-      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
-      transform: scale(1.08);
-    }
-
-    .mini-card.done {
-      border-color: #4caf50;
-    }
-
-    .mini-card-live {
-      position: absolute;
-      top: -7px;
-      right: -7px;
-      background: #ff4444;
-      color: #fff;
-      font-size: 0.55rem;
-      font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 10px;
-      letter-spacing: 0.3px;
-      box-shadow: 0 0 0 2px #0f1729;
-      animation: livePulse 1.4s infinite;
-      z-index: 2;
-    }
-
-    @keyframes livePulse {
-      0%, 100% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 0 rgba(255,68,68,0.6); }
-      50% { box-shadow: 0 0 0 2px #0f1729, 0 0 0 5px rgba(255,68,68,0); }
-    }
-
-    .mini-card-header {
-      background: #0f1729;
-      padding: 2px 3px;
-      text-align: center;
-      font-size: 0.6rem;
-      color: #888;
-      border-bottom: 1px solid rgba(74, 158, 255, 0.3);
-    }
-
-    .mini-card-content {
-      display: flex;
-      flex-direction: column;
-      padding: 0;
-    }
-
-    .mini-row {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 6px 4px;
-      min-height: 48px;
-      border-bottom: 1px solid rgba(74, 158, 255, 0.2);
-      position: relative;
-      flex: 1;
-      gap: 2px;
-    }
-
-    .mini-row:last-child {
-      border-bottom: none;
-    }
-
-    .mini-row:hover {
-      background: rgba(255, 215, 0, 0.05);
-    }
-
-    .mini-abbr {
-      font-size: 0.7rem;
-      font-weight: bold;
-      color: #ffd700;
-      letter-spacing: 0.3px;
-    }
-
-    .mini-abbr.pending {
-      color: #888;
-    }
-
-    .mini-flag {
-      width: 28px;
-      height: 21px;
-      border-radius: 2px;
-      object-fit: cover;
-      background: #333;
-    }
-
-    .mini-flag-ph {
-      width: 28px;
-      height: 21px;
-      background: #444;
-      border-radius: 2px;
-    }
-
-    .mini-score-wrap {
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      line-height: 1.1;
-    }
-
-    .mini-score {
-      font-size: 0.9rem;
-      font-weight: bold;
-      color: #4caf50;
-    }
-
-    .mini-score.live {
-      color: #4caf50;
-      font-size: 1rem;
-    }
-
-    .mini-score:not(.live) {
-      color: #888;
-    }
-
-    .penalty-text {
-      font-size: 0.55rem;
-      color: #ff9800;
-    }
-
-    .mini-penalty {
-      font-size: 0.6rem;
-      font-weight: normal;
-      color: #ff9800;
-    }
-
-    .mini-card-footer {
-      background: #0f1729;
-      padding: 4px 3px;
-      border-top: 3px solid #ff4444;
-      font-size: 0.55rem;
-      color: #888;
-      text-align: center;
-      line-height: 1.2;
-    }
-
-    .mini-card.final {
-      border: 3px solid #ffd700;
-      width: 120px;
-      box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-    }
-
-    .trophy {
-      font-size: 3rem;
-      animation: bounce 1.5s infinite;
-    }
-
-    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-
-    .final-title {
-      font-size: 0.9rem;
-      font-weight: bold;
-      color: #ffd700;
-      text-transform: uppercase;
-    }
-
-    .center-final {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .final-row {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 40px;
-      flex-wrap: wrap;
-    }
-
-    .final-block {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .third-place {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding-top: 22px;
-    }
-
-    .third-title {
-      font-size: 0.7rem;
-      color: #aaa;
-      font-weight: bold;
-    }
-
-    .error-msg {
-      background: #c82333;
-      border: 2px solid #f44336;
-      border-radius: 8px;
-      padding: 20px;
-      text-align: center;
-      color: #fff;
-      margin: 20px;
-    }
-
-    @media (max-width: 1024px) {
-      .bracket-container {
-        padding: 16px;
-      }
-
-      .tree li {
-        padding: 20px 4px 0 4px;
-      }
-
-      .tree li::before,
-      .tree li::after,
-      .tree li ul::before {
-        height: 20px;
-      }
-
-      .mini-card {
-        width: 78px;
-      }
-
-      .mini-card.final {
-        width: 88px;
-      }
-
-      .mini-card-header,
-      .mini-card-footer {
-        font-size: 0.5rem;
-        padding: 2px;
-      }
-
-      .mini-row {
-        min-height: 38px;
-        padding: 4px 3px;
-        gap: 1px;
-      }
-
-      .mini-abbr {
-        font-size: 0.6rem;
-      }
-
-      .mini-flag,
-      .mini-flag-ph {
-        width: 22px;
-        height: 16px;
-      }
-
-      .mini-score {
-        font-size: 0.75rem;
-      }
-
-      .mini-score.live {
-        font-size: 0.8rem;
-      }
-
-      .mini-penalty {
-        font-size: 0.55rem;
-      }
-
-      .connector-v {
-        height: 18px;
-      }
-
-      .trophy {
-        font-size: 2rem;
-      }
-
-      .final-row {
-        gap: 16px;
-      }
-
-      body {
-        padding: 10px;
-      }
-
-      .header h1 {
-        font-size: 1.4rem;
-      }
-
-      .header .subtitle {
-        font-size: 0.7rem;
-      }
-
-      .status-bar {
-        font-size: 0.7rem;
-        margin-bottom: 8px;
-      }
-    }
-    /* ===== CARTEL DE INSTALACIÓN (PWA) ===== */
-    .install-banner {
-      position: fixed;
-      left: 12px;
-      right: 12px;
-      bottom: 12px;
-      z-index: 999;
-      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
-      border: 2px solid #ffd700;
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      animation: slideUp 0.4s ease;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(120%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .install-banner .install-icon {
-      font-size: 1.6rem;
-      flex-shrink: 0;
-    }
-
-    .install-banner .install-text {
-      flex: 1;
-      font-size: 0.8rem;
-      line-height: 1.3;
-      color: #fff;
-    }
-
-    .install-banner .install-text b {
-      color: #ffd700;
-    }
-
-    .install-banner .install-btn {
-      flex-shrink: 0;
-      background: #ffd700;
-      color: #0a0e27;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-weight: bold;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-
-    .install-banner .install-close {
-      flex-shrink: 0;
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 1.1rem;
-      cursor: pointer;
-      padding: 4px 6px;
-      line-height: 1;
-    }
-
-    @media (max-width: 480px) {
-      .install-banner {
-        flex-wrap: wrap;
-      }
-      .install-banner .install-text {
-        font-size: 0.75rem;
-      }
-    }
-    .mini-card.selected {
-      border-color: #ffd700;
-      box-shadow: 0 0 18px rgba(255, 215, 0, 0.7);
-      transform: scale(1.08);
-      z-index: 5;
-      position: relative;
-    }
-
-    /* ===== MODAL DE DETALLE DEL PARTIDO ===== */
-    .match-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(2px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      animation: fadeIn 0.2s ease;
-    }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    .match-modal {
-      background: linear-gradient(135deg, #1a2555 0%, #2d3e5f 100%);
-      border: 2px solid #ffd700;
-      border-radius: 14px;
-      max-width: 360px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      padding: 18px;
-      box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-      animation: modalPop 0.2s ease;
-    }
-
-    @keyframes modalPop {
-      from { transform: scale(0.92); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    .match-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .match-modal-round {
-      font-size: 0.75rem;
-      color: #ffd700;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .match-modal-close {
-      background: none;
-      border: none;
-      color: #aaa;
-      font-size: 1.4rem;
-      cursor: pointer;
-      line-height: 1;
-      padding: 4px 8px;
-    }
-
-    .match-modal-team {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 4px;
-    }
-
-    .match-modal-team img {
-      width: 40px;
-      height: 30px;
-      object-fit: cover;
-      border-radius: 3px;
-    }
-
-    .match-modal-team-name {
-      flex: 1;
-      font-size: 1rem;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .match-modal-team-score {
-      font-size: 1.4rem;
-      font-weight: bold;
-      color: #4caf50;
-    }
-
-    .match-modal-team-score .pen {
-      font-size: 0.85rem;
-      color: #ff9800;
-      margin-left: 4px;
-    }
-
-    .match-modal-divider {
-      height: 1px;
-      background: rgba(255, 255, 255, 0.15);
-      margin: 6px 0;
-    }
-
-    .match-modal-scorers {
-      margin-top: 10px;
-      font-size: 0.8rem;
-      color: #ccc;
-    }
-
-    .match-modal-scorers b {
-      color: #aaa;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .match-modal-scorers .scorer-line {
-      padding: 2px 0;
-    }
-
-    .match-modal-stadium {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px dashed rgba(255, 255, 255, 0.15);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.8rem;
-      color: #ccc;
-    }
-
-    .match-modal-stadium-icon {
-      font-size: 1.3rem;
-      line-height: 1;
-    }
-
-    .match-modal-stadium-name {
-      font-weight: bold;
-      color: #fff;
-      font-size: 0.85rem;
-    }
-
-    .match-modal-stadium-city {
-      color: #aaa;
-      font-size: 0.75rem;
-    }
-
-    .match-modal-stadium-capacity {
-      margin-left: auto;
-      font-size: 0.7rem;
-      color: #888;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    .match-modal-footer {
-      margin-top: 14px;
-      padding-top: 10px;
-      border-top: 1px dashed rgba(255, 255, 255, 0.15);
-      font-size: 0.75rem;
-      color: #999;
-      text-align: center;
-    }
-
-    .match-modal-footer .status-live {
-      color: #ff4444;
-      font-weight: bold;
-    }
-  </style>
-</head>
 <body>
 
 <div class="header">
@@ -746,16 +7,700 @@
 
 <div id="install-banner" class="install-banner" style="display:none;"></div>
 
-<div id="match-modal-overlay" class="match-modal-overlay" style="display:none;"></div>
+<div id="match-modal-overlay" class="match-modal-overlay" style="display: none;"></div>
 
 <div class="status-bar">
   <span class="dot ok" id="dot"></span>
-  <span id="st">Cargando...</span> · <span id="upd">--:--</span>
+  <span id="st">104 partidos cargados ✓</span> · <span id="upd">21:49h</span>
 </div>
 
 <div class="bracket-wrapper">
   <div class="bracket-container">
-    <div class="bracket-content" id="bracket"></div>
+    <div class="bracket-content" id="bracket"><div class="tree-wrap flip"><ul class="tree"><li><div class="mini-card  " data-match="101">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #97">
+    <span class="mini-abbr pending">G97</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #98">
+    <span class="mini-abbr pending">G98</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">14 Jul 2:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="97">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #89">
+    <span class="mini-abbr pending">G89</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #90">
+    <span class="mini-abbr pending">G90</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">9 Jul 3:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="89">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Paraguay">
+    <span class="mini-abbr ">PAR</span>
+    <img src="https://flagcdn.com/32x24/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Francia">
+    <span class="mini-abbr ">FRA</span>
+    <img src="https://flagcdn.com/32x24/fr.png" alt="Francia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">4 Jul 4:00 pm CO</div>
+  </div><ul><li><div class="mini-card done " data-match="74">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Alemania">
+    <span class="mini-abbr ">GER</span>
+    <img src="https://flagcdn.com/32x24/de.png" alt="Alemania" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      <span class="mini-penalty">(3)</span>
+    </span>
+  </div>
+      <div class="mini-row" title="Paraguay">
+    <span class="mini-abbr ">PAR</span>
+    <img src="https://flagcdn.com/32x24/py.png" alt="Paraguay" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      <span class="mini-penalty">(4)</span>
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">29 Jun 3:30 pm CO</div>
+  </div></li><li><div class="mini-card done " data-match="77">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Francia">
+    <span class="mini-abbr ">FRA</span>
+    <img src="https://flagcdn.com/32x24/fr.png" alt="Francia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">3</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Suecia">
+    <span class="mini-abbr ">SWE</span>
+    <img src="https://flagcdn.com/32x24/se.png" alt="Suecia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">0</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">30 jun 4:00 p. m. CO</div>
+  </div></li></ul></li><li><div class="mini-card  " data-match="90">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Canadá">
+    <span class="mini-abbr ">CAN</span>
+    <img src="https://flagcdn.com/32x24/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Marruecos">
+    <span class="mini-abbr ">MAR</span>
+    <img src="https://flagcdn.com/32x24/ma.png" alt="Marruecos" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">4 Jul 12:00 pm CO</div>
+  </div><ul><li><div class="mini-card done " data-match="73">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Sudáfrica">
+    <span class="mini-abbr ">RSA</span>
+    <img src="https://flagcdn.com/32x24/za.png" alt="Sudáfrica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">0</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Canadá">
+    <span class="mini-abbr ">CAN</span>
+    <img src="https://flagcdn.com/32x24/ca.png" alt="Canadá" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">28 Jun 2:00 pm CO</div>
+  </div></li><li><div class="mini-card done " data-match="75">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Holanda">
+    <span class="mini-abbr ">NED</span>
+    <img src="https://flagcdn.com/32x24/nl.png" alt="Holanda" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      <span class="mini-penalty">(2)</span>
+    </span>
+  </div>
+      <div class="mini-row" title="Marruecos">
+    <span class="mini-abbr ">MAR</span>
+    <img src="https://flagcdn.com/32x24/ma.png" alt="Marruecos" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      <span class="mini-penalty">(3)</span>
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">29 Jun 8:00 pm CO</div>
+  </div></li></ul></li></ul></li><li><div class="mini-card  " data-match="98">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #93">
+    <span class="mini-abbr pending">G93</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #94">
+    <span class="mini-abbr pending">G94</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">10 Jul 2:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="93">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #83">
+    <span class="mini-abbr pending">G83</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #84">
+    <span class="mini-abbr pending">G84</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">6 Jul 2:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="83">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Portugal">
+    <span class="mini-abbr ">POR</span>
+    <img src="https://flagcdn.com/32x24/pt.png" alt="Portugal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Croacia">
+    <span class="mini-abbr ">CRO</span>
+    <img src="https://flagcdn.com/32x24/hr.png" alt="Croacia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">2 Jul 6:00 pm CO</div>
+  </div></li><li><div class="mini-card  " data-match="84">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="España">
+    <span class="mini-abbr ">ESP</span>
+    <img src="https://flagcdn.com/32x24/es.png" alt="España" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Austria">
+    <span class="mini-abbr ">AUT</span>
+    <img src="https://flagcdn.com/32x24/at.png" alt="Austria" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">2 Jul 2:00 pm CO</div>
+  </div></li></ul></li><li><div class="mini-card  " data-match="94">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #81">
+    <span class="mini-abbr pending">G81</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #82">
+    <span class="mini-abbr pending">G82</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">6 Jul 7:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="81">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="EE. UU.">
+    <span class="mini-abbr ">USA</span>
+    <img src="https://flagcdn.com/32x24/us.png" alt="EE. UU." class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Bosnia">
+    <span class="mini-abbr ">BIH</span>
+    <img src="https://flagcdn.com/32x24/ba.png" alt="Bosnia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">1 Jul 7:00 pm CO</div>
+  </div></li><li><div class="mini-card  " data-match="82">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Bélgica">
+    <span class="mini-abbr ">BEL</span>
+    <img src="https://flagcdn.com/32x24/be.png" alt="Bélgica" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Senegal">
+    <span class="mini-abbr ">SEN</span>
+    <img src="https://flagcdn.com/32x24/sn.png" alt="Senegal" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">1 Jul 3:00 pm CO</div>
+  </div></li></ul></li></ul></li></ul></li></ul></div><div class="connector-v"></div><div class="center-final">
+    <div class="trophy">🏆</div>
+    <div class="final-row">
+      <div class="final-block">
+        <div class="final-title">Final</div>
+        <div class="mini-card  final" data-match="104">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #101">
+    <span class="mini-abbr pending">G101</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #102">
+    <span class="mini-abbr pending">G102</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">19 Jul 2:00 pm CO</div>
+  </div>
+      </div>
+      <div class="third-place">
+        <div class="third-title">3er Puesto</div>
+        <div class="mini-card  " data-match="103">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Per. #101">
+    <span class="mini-abbr pending">P101</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Per. #102">
+    <span class="mini-abbr pending">P102</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">18 Jul 4:00 pm CO</div>
+  </div>
+      </div>
+    </div>
+  </div><div class="connector-v"></div><div class="tree-wrap "><ul class="tree"><li><div class="mini-card  " data-match="102">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #99">
+    <span class="mini-abbr pending">G99</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #100">
+    <span class="mini-abbr pending">G100</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">15 Jul 2:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="99">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #91">
+    <span class="mini-abbr pending">G91</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #92">
+    <span class="mini-abbr pending">G92</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">11 Jul 4:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="91">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Brasil">
+    <span class="mini-abbr ">BRA</span>
+    <img src="https://flagcdn.com/32x24/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Noruega">
+    <span class="mini-abbr ">NOR</span>
+    <img src="https://flagcdn.com/32x24/no.png" alt="Noruega" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">5 Jul 3:00 pm CO</div>
+  </div><ul><li><div class="mini-card done " data-match="76">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Brasil">
+    <span class="mini-abbr ">BRA</span>
+    <img src="https://flagcdn.com/32x24/br.png" alt="Brasil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">2</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Japón">
+    <span class="mini-abbr ">JPN</span>
+    <img src="https://flagcdn.com/32x24/jp.png" alt="Japón" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">29 Jun 12:00 pm CO</div>
+  </div></li><li><div class="mini-card done " data-match="78">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Costa de Marfil">
+    <span class="mini-abbr ">CIV</span>
+    <img src="https://flagcdn.com/32x24/ci.png" alt="Costa de Marfil" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">1</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Noruega">
+    <span class="mini-abbr ">NOR</span>
+    <img src="https://flagcdn.com/32x24/no.png" alt="Noruega" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score live">2</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">30 jun 12:00 p. m. CO</div>
+  </div></li></ul></li><li><div class="mini-card  " data-match="92">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #79">
+    <span class="mini-abbr pending">G79</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #80">
+    <span class="mini-abbr pending">G80</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">5 Jul 7:00 pm CO</div>
+  </div><ul><li><div class="mini-card selected" data-match="79">
+    <div class="mini-card-live">45'+4'</div>
+    <div class="mini-card-content">
+      <div class="mini-row" title="México">
+    <span class="mini-abbr ">MEX</span>
+    <img src="https://flagcdn.com/32x24/mx.png" alt="México" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Ecuador">
+    <span class="mini-abbr ">ECU</span>
+    <img src="https://flagcdn.com/32x24/ec.png" alt="Ecuador" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">30 jun 9:00 p. m. CO</div>
+  </div></li><li><div class="mini-card" data-match="80">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Inglaterra">
+    <span class="mini-abbr ">ENG</span>
+    <img src="https://flagcdn.com/32x24/gb-eng.png" alt="Inglaterra" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="RD Congo">
+    <span class="mini-abbr ">COD</span>
+    <img src="https://flagcdn.com/32x24/cd.png" alt="RD Congo" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">1 Jul 11:00 am CO</div>
+  </div></li></ul></li></ul></li><li><div class="mini-card  " data-match="100">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #95">
+    <span class="mini-abbr pending">G95</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #96">
+    <span class="mini-abbr pending">G96</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">11 Jul 8:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="95">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #86">
+    <span class="mini-abbr pending">G86</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #88">
+    <span class="mini-abbr pending">G88</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">7 Jul 11:00 am CO</div>
+  </div><ul><li><div class="mini-card  " data-match="86">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Argentina">
+    <span class="mini-abbr ">ARG</span>
+    <img src="https://flagcdn.com/32x24/ar.png" alt="Argentina" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Cabo Verde">
+    <span class="mini-abbr ">CPV</span>
+    <img src="https://flagcdn.com/32x24/cv.png" alt="Cabo Verde" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">3 Jul 5:00 pm CO</div>
+  </div></li><li><div class="mini-card  " data-match="88">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Australia">
+    <span class="mini-abbr ">AUS</span>
+    <img src="https://flagcdn.com/32x24/au.png" alt="Australia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Egipto">
+    <span class="mini-abbr ">EGY</span>
+    <img src="https://flagcdn.com/32x24/eg.png" alt="Egipto" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">3 Jul 1:00 pm CO</div>
+  </div></li></ul></li><li><div class="mini-card  " data-match="96">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Gan. #85">
+    <span class="mini-abbr pending">G85</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Gan. #87">
+    <span class="mini-abbr pending">G87</span>
+    <span class="mini-flag-ph"></span>
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">7 Jul 3:00 pm CO</div>
+  </div><ul><li><div class="mini-card  " data-match="85">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Suiza">
+    <span class="mini-abbr ">SUI</span>
+    <img src="https://flagcdn.com/32x24/ch.png" alt="Suiza" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Argelia">
+    <span class="mini-abbr ">ALG</span>
+    <img src="https://flagcdn.com/32x24/dz.png" alt="Argelia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">2 Jul 10:00 pm CO</div>
+  </div></li><li><div class="mini-card  " data-match="87">
+    
+    <div class="mini-card-content">
+      <div class="mini-row" title="Colombia">
+    <span class="mini-abbr ">COL</span>
+    <img src="https://flagcdn.com/32x24/co.png" alt="Colombia" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+      <div class="mini-row" title="Ghana">
+    <span class="mini-abbr ">GHA</span>
+    <img src="https://flagcdn.com/32x24/gh.png" alt="Ghana" class="mini-flag" onerror="this.outerHTML='&lt;span class=\'mini-flag-ph\'&gt;&lt;/span&gt;'">
+    <span class="mini-score-wrap">
+      <span class="mini-score ">–</span>
+      
+    </span>
+  </div>
+    </div>
+    <div class="mini-card-footer">3 Jul 8:30 pm CO</div>
+  </div></li></ul></li></ul></li></ul></li></ul></div></div>
   </div>
 </div>
 
@@ -816,6 +761,36 @@ const ABBR_ES = {
   'England':'ENG','Croatia':'CRO','Ghana':'GHA','Panama':'PAN',
 };
 
+// ── ESPN enrichment ─────────────────────────────────────────────────────────
+const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+
+// Persisten entre refreshes para ir acumulando todos los equipos vistos
+if (!window._espnTeams)   window._espnTeams   = {}; // abbr → { color, altColor, logo, form }
+if (!window._espnMatches) window._espnMatches = {}; // "HOMEabbr-AWAYabbr" → { utcDate, state, displayClock, broadcasts, link }
+
+function getESPNTeam(name) {
+  const abbr = ABBR_ES[name] || name;
+  return window._espnTeams[abbr] || null;
+}
+
+function getESPNMatch(g) {
+  const hA = ABBR_ES[g.home_team_name_en];
+  const aA = ABBR_ES[g.away_team_name_en];
+  if (!hA || !aA) return null;
+  return window._espnMatches[`${hA}-${aA}`] || null;
+}
+
+function formDots(form) {
+  if (!form) return '';
+  const dots = form.split('').map(c => {
+    const col = c === 'W' ? '#4caf50' : c === 'L' ? '#f44336' : '#aaa';
+    const title = c === 'W' ? 'Victoria' : c === 'L' ? 'Derrota' : 'Empate';
+    return `<span class="form-dot" style="background:${col}" title="${title}"></span>`;
+  }).join('');
+  return `<span class="form-dots"><span class="form-label">Últ. 5:</span>${dots}</span>`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const STADIUMS = {
   '1':  { name: 'Estadio Azteca', city: 'Ciudad de México', country: 'México', capacity: 83000 },
   '2':  { name: 'Estadio Akron', city: 'Guadalajara (Zapopan)', country: 'México', capacity: 48000 },
@@ -837,56 +812,60 @@ const STADIUMS = {
 
 const pad = n => String(n).padStart(2,'0');
 
-// UTC offset (hours) for each stadium during the June–July tournament (DST active in USA/Canada)
-// Colombia = UTC-5 always (no DST). Conversion: Colombia = local - venueOffset - 5
+// UTC offset de cada estadio durante junio-julio (DST activo en USA/Canadá)
 const STADIUM_UTC = {
-  '1': -6, '2': -6, '3': -6,           // México (no DST since 2023)
-  '4': -5, '5': -5, '6': -5,           // Dallas, Houston, Kansas City (CDT)
-  '7': -4, '8': -4, '9': -4,           // Atlanta, Miami, Boston (EDT)
-  '10': -4, '11': -4, '12': -4,        // Philadelphia, MetLife, Toronto (EDT)
-  '13': -7, '14': -7, '15': -7,        // Vancouver, Seattle, San Francisco (PDT)
-  '16': -7,                             // Los Angeles (PDT)
+  '1': -6, '2': -6, '3': -6,      // México (sin DST desde 2023)
+  '4': -5, '5': -5, '6': -5,      // Dallas, Houston, Kansas City (CDT)
+  '7': -4, '8': -4, '9': -4,      // Atlanta, Miami, Boston (EDT)
+  '10': -4, '11': -4, '12': -4,   // Philadelphia, MetLife, Toronto (EDT)
+  '13': -7, '14': -7, '15': -7,   // Vancouver, Seattle, San Francisco (PDT)
+  '16': -7,                        // Los Ángeles (PDT)
 };
 
-function fmtDate(s, stadiumId) {
-  if (!s) return '';
-  const [dp, tp] = s.split(' ');
-  const [mo, dd, yy] = dp.split('/');
-  const [hh, mm] = tp.split(':').map(Number);
-  const venueOffset = STADIUM_UTC[String(stadiumId)] ?? -5;
-  // Convert local venue time → UTC → Colombia (UTC-5)
-  let colH = hh - venueOffset - 5;
-  let colD = parseInt(dd);
-  // Handle day overflow
-  if (colH >= 24) { colH -= 24; colD++; }
-  if (colH < 0)   { colH += 24; colD--; }
-  const ampm = colH >= 12 ? 'pm' : 'am';
-  const h12 = colH % 12 || 12;
-  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  return `${colD} ${months[parseInt(mo)-1]} ${h12}:${pad(mm)} ${ampm} CO`;
+// Si tenemos fecha UTC de ESPN la usamos directamente (precisa, sin offset manual).
+// Fallback: lógica existente con STADIUM_UTC.
+function fmtDate(s, stadiumId, utcDate) {
+  let d;
+  if (utcDate) {
+    d = new Date(utcDate);
+  } else {
+    if (!s) return '';
+    const [dp, tp] = s.split(' ');
+    const [mo, dd, yy] = dp.split('/');
+    const [hh, mm] = tp.split(':').map(Number);
+    const venueOffset = STADIUM_UTC[String(stadiumId)] ?? -5;
+    const utcMs = Date.UTC(+yy, +mo - 1, +dd, hh - venueOffset, mm);
+    d = new Date(utcMs - 5 * 3600000); // → Colombia UTC-5
+    const ampm = d.getUTCHours() >= 12 ? 'pm' : 'am';
+    const h12 = d.getUTCHours() % 12 || 12;
+    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${h12}:${pad(d.getUTCMinutes())} ${ampm} CO`;
+  }
+  // Usar Intl para convertir UTC → Colombia
+  const opts = { timeZone: 'America/Bogota', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true };
+  const parts = new Intl.DateTimeFormat('es-CO', opts).formatToParts(d);
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return `${get('day')} ${get('month')} ${get('hour')}:${get('minute')} ${get('dayPeriod')} CO`;
 }
 
-// Interpreta time_elapsed: 'notstarted', 'live', 'HT', 'FT', o un minuto ("23", "45+2", "90")
+// Interpreta time_elapsed. Prioriza datos ESPN si están disponibles.
 function matchStatus(g) {
+  const espn = getESPNMatch(g);
+  if (espn) {
+    if (espn.completed || espn.state === 'post') return { label: 'Finalizado', short: 'FIN', live: false };
+    if (espn.state === 'in') {
+      const clk = espn.displayClock || 'VIVO';
+      return { label: clk, short: clk, live: true };
+    }
+    if (espn.state === 'pre') return { label: 'Por jugar', short: '', live: false };
+  }
+  // Fallback al campo local
   const te = (g.time_elapsed || '').toString().trim();
-
-  if (g.finished === 'TRUE' || te === 'FT') {
-    return { label: 'Finalizado', short: 'FIN', live: false };
-  }
-  if (te === 'HT') {
-    return { label: 'Descanso', short: 'DT', live: true };
-  }
-  if (te === 'live') {
-    return { label: 'En vivo', short: 'VIVO', live: true };
-  }
-  if (!te || te === 'notstarted') {
-    return { label: 'Por jugar', short: '', live: false };
-  }
-  // Minuto numérico (puede traer sufijo de descuento, ej. "45+2")
-  if (/^\d+(\+\d+)?$/.test(te)) {
-    return { label: `${te}'`, short: `${te}'`, live: true };
-  }
-  // Fallback: mostrar el valor tal cual
+  if (g.finished === 'TRUE' || te === 'FT') return { label: 'Finalizado', short: 'FIN', live: false };
+  if (te === 'HT') return { label: 'Descanso', short: 'DT', live: true };
+  if (te === 'live') return { label: 'En vivo', short: 'VIVO', live: true };
+  if (!te || te === 'notstarted') return { label: 'Por jugar', short: '', live: false };
+  if (/^\d+(\+\d+)?$/.test(te)) return { label: `${te}'`, short: `${te}'`, live: true };
   return { label: te, short: te, live: false };
 }
 
@@ -985,7 +964,7 @@ function miniCard(g, byId, isFinal = false) {
       ${miniRow(h, g.home_score, g.home_penalty_score, done)}
       ${miniRow(a, g.away_score, g.away_penalty_score, done)}
     </div>
-    <div class="mini-card-footer">${fmtDate(g.local_date, g.stadium_id)}</div>
+    <div class="mini-card-footer">${fmtDate(g.local_date, g.stadium_id, g._utcDate)}</div>
   </div>`;
 }
 
@@ -1024,7 +1003,15 @@ function buildHalfTree(levels, byId, flip) {
 
 function buildBracket(games) {
   const byId = {};
-  games.forEach(g => { byId[String(g.id)] = g; });
+  games.forEach(g => {
+    byId[String(g.id)] = g;
+    // Enrich con ESPN si hay datos disponibles
+    const em = getESPNMatch(g);
+    if (em) {
+      g._utcDate    = em.utcDate;
+      g._espnMatch  = em;
+    }
+  });
 
   // Mitad superior: hojas arriba, convergiendo HACIA ABAJO hasta la semifinal
   // (justo encima de la final), igual que en la imagen de referencia.
@@ -1060,11 +1047,61 @@ function buildBracket(games) {
   window._byId = byId;
 }
 
+async function fetchESPN() {
+  try {
+    const res = await fetch(ESPN_SCOREBOARD);
+    if (!res.ok) return;
+    const data = await res.json();
+    for (const event of (data.events || [])) {
+      const comp = event.competitions?.[0];
+      if (!comp) continue;
+      const competitors = comp.competitors || [];
+      const home = competitors.find(c => c.homeAway === 'home');
+      const away = competitors.find(c => c.homeAway === 'away');
+
+      // Acumular datos de equipo
+      for (const c of competitors) {
+        const abbr = c.team?.abbreviation;
+        if (abbr && !window._espnTeams[abbr]) {
+          window._espnTeams[abbr] = {
+            color:    c.team.color    || null,
+            altColor: c.team.alternateColor || null,
+            logo:     c.team.logo     || null,
+            form:     c.form          || null,
+          };
+        }
+      }
+
+      // Datos del partido
+      if (home && away) {
+        const key = `${home.team?.abbreviation}-${away.team?.abbreviation}`;
+        const st = comp.status || {};
+        const broadcasts = comp.broadcasts?.[0]?.names || [];
+        const link = event.links?.find(l => l.rel?.includes('summary'))?.href || null;
+        window._espnMatches[key] = {
+          espnId:       event.id,
+          utcDate:      event.date,
+          state:        st.type?.state,
+          completed:    st.type?.completed,
+          displayClock: st.displayClock,
+          broadcasts,
+          link,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('ESPN API:', e.message);
+  }
+}
+
 async function load() {
   document.getElementById('dot').className = 'dot loading';
   document.getElementById('st').textContent = 'Actualizando…';
   try {
-    const res = await fetch(`${PROXY}?proxy=games`);
+    const [res] = await Promise.all([
+      fetch(`${PROXY}?proxy=games`),
+      fetchESPN(),
+    ]);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const games = Array.isArray(data) ? data : (data.games || []);
@@ -1111,16 +1148,29 @@ function modalTeamRow(g, side, byId, done) {
   const displayFull = pend ? name : (TEAM_ES[name] || name);
   const score = side === 'h' ? g.home_score : g.away_score;
   const penalty = side === 'h' ? g.home_penalty_score : g.away_penalty_score;
-  const live = done && score !== null && score !== undefined && score !== 'null';
-  const flagHtml = (!pend && flagCode)
-    ? `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" onerror="this.style.display='none'">`
-    : '';
-  const penHtml = (penalty && penalty !== 'null' && live) ? `<span class="pen">(${penalty})</span>` : '';
+  const showScore = done && score !== null && score !== undefined && score !== 'null';
+  const espnTeam = getESPNTeam(name);
 
-  return `<div class="match-modal-team">
-    ${flagHtml}
-    <span class="match-modal-team-name">${displayFull}</span>
-    <span class="match-modal-team-score">${live ? score : '–'}${penHtml}</span>
+  // Logo: ESPN (mejor calidad) → flagcdn → nada
+  let imgHtml = '';
+  if (!pend) {
+    if (espnTeam?.logo) {
+      imgHtml = `<img src="${espnTeam.logo}" alt="${displayFull}" class="modal-team-logo" onerror="this.src='https://flagcdn.com/64x48/${flagCode||'xx'}.png'">`;
+    } else if (flagCode) {
+      imgHtml = `<img src="https://flagcdn.com/64x48/${flagCode}.png" alt="${displayFull}" class="modal-team-logo" onerror="this.style.display='none'">`;
+    }
+  }
+
+  const penHtml = (penalty && penalty !== 'null' && showScore) ? `<span class="pen">(${penalty})</span>` : '';
+  const formHtml = espnTeam?.form ? formDots(espnTeam.form) : '';
+  const colorStrip = espnTeam?.color ? `style="border-left: 3px solid #${espnTeam.color}"` : '';
+
+  return `<div class="match-modal-team" ${colorStrip}>
+    ${imgHtml}
+    <div class="modal-team-info">
+      <span class="match-modal-team-name">${displayFull}</span>
+    </div>
+    <span class="match-modal-team-score">${showScore ? score : '–'}${penHtml}</span>
   </div>`;
 }
 
@@ -1132,9 +1182,16 @@ function buildMatchModal(g, byId) {
   const hName = resolveLabel(g, 'h', byId);
   const aName = resolveLabel(g, 'a', byId);
   const status = matchStatus(g);
-
   const isLive = status.live;
 
+  // Gradiente del header con colores ESPN
+  const hTeam = getESPNTeam(hName);
+  const aTeam = getESPNTeam(aName);
+  const hCol = hTeam?.color ? `#${hTeam.color}` : '1a2a4a';
+  const aCol = aTeam?.color ? `#${aTeam.color}` : '1a2a4a';
+  const headerGrad = `background: linear-gradient(135deg, #${hCol}cc 0%, #0f172980 50%, #${aCol}cc 100%);`;
+
+  // Goles (rojos si partido en curso)
   let scorersHtml = '';
   if (homeScorers.length || awayScorers.length) {
     const goalIcon = isLive ? '🔴' : '⚽';
@@ -1146,6 +1203,7 @@ function buildMatchModal(g, byId) {
     </div>`;
   }
 
+  // Estadio
   const stadium = STADIUMS[String(g.stadium_id)];
   const stadiumHtml = stadium
     ? `<div class="match-modal-stadium">
@@ -1158,8 +1216,19 @@ function buildMatchModal(g, byId) {
       </div>`
     : '';
 
+  // TV / Streaming desde ESPN
+  const em = g._espnMatch;
+  const tvHtml = em?.broadcasts?.length
+    ? `<div class="modal-tv">📺 <span>${em.broadcasts.join(' · ')}</span></div>`
+    : '';
+
+  // Link directo a ESPN
+  const espnLinkHtml = em?.link
+    ? `<a href="${em.link}" target="_blank" rel="noopener" class="espn-link">Ver en ESPN →</a>`
+    : '';
+
   return `<div class="match-modal">
-    <div class="match-modal-header">
+    <div class="match-modal-header" style="${headerGrad}">
       <span class="match-modal-round">${roundLabel}</span>
       <button class="match-modal-close" id="match-modal-close-btn">✕</button>
     </div>
@@ -1168,7 +1237,10 @@ function buildMatchModal(g, byId) {
     ${modalTeamRow(g, 'a', byId, done)}
     ${scorersHtml}
     ${stadiumHtml}
-    <div class="match-modal-footer">${fmtDate(g.local_date, g.stadium_id)} · <span class="${status.live ? 'status-live' : ''}">${status.label}</span></div>
+    ${tvHtml}
+    <div class="match-modal-footer">
+      ${fmtDate(g.local_date, g.stadium_id, g._utcDate)} · <span class="${isLive ? 'status-live' : ''}">${status.label}</span>
+    </div>
   </div>`;
 }
 
@@ -1278,5 +1350,6 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+
+
 </body>
-</html>
